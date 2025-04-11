@@ -1,0 +1,37 @@
+service: blinkly-platform
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    DATABASE_HOST: ${ssm:/blinkly/${self:provider.stage}/database/host}
+    DATABASE_PORT: ${ssm:/blinkly/${self:provider.stage}/database/port}
+    DATABASE_USERNAME: ${ssm:/blinkly/${self:provider.stage}/database/username}
+    DATABASE_PASSWORD: ${ssm:/blinkly/${self:provider.stage}/database/password}
+    DATABASE_NAME: ${ssm:/blinkly/${self:provider.stage}/database/name}
+    JWT_SECRET: ${ssm:/blinkly/${self:provider.stage}/jwt/secret}
+    STRIPE_SECRET_KEY: ${ssm:/blinkly/${self:provider.stage}/stripe/secret}
+    STRIPE_WEBHOOK_SECRET: ${ssm:/blinkly/${self:provider.stage}/stripe/webhook}
+
+functions:
+  api:
+    handler: dist/lambda.handler
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors: true
+    memorySize: 256
+    timeout: 30
+
+custom:
+  webpack:
+    webpackConfig: webpack.config.js
+    includeModules: true
+    packager: npm
+
+plugins:
+  - serverless-webpack

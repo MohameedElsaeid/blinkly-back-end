@@ -6,6 +6,7 @@ Blinkly Platform is a comprehensive URL shortening and analytics service built u
 
 - [Features](#features)
 - [Project Structure](#project-structure)
+- [API Documentation](#api-documentation)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Environment Setup](#environment-setup)
@@ -16,76 +17,253 @@ Blinkly Platform is a comprehensive URL shortening and analytics service built u
 
 ## Features
 
-- **User Registration & Authentication:** Secure sign-up/login using JWT.
-- **Link Management:** Create and manage standard and dynamic short links.
-- **Analytics:** Track clicks, device/browser analytics, and more.
-- **QR Code Generation:** Generate customizable QR codes for links.
-- **Payments & Subscriptions:** Integrate with Stripe to manage subscriptions and payments.
-- **Packages Module:** Seed pricing packages (monthly and yearly) and expose an API for dynamic pricing tiers.
+- **User Registration & Authentication:** Secure sign-up/login using JWT
+- **Link Management:** Create and manage standard and dynamic short links
+- **Analytics:** Track clicks, device/browser analytics, and more
+- **QR Code Generation:** Generate customizable QR codes for links
+- **Payments & Subscriptions:** Integrate with Stripe to manage subscriptions and payments
+- **Packages Module:** Seed pricing packages (monthly and yearly) and expose an API for dynamic pricing tiers
 
 ## Project Structure
 
-```up
+```
 blinkly-platform/
-├── package.json
-├── tsconfig.json
-├── ormconfig.json
-├── serverless.yml
-├── webpack.config.js
-└── src
-    ├── main.ts
-    ├── lambda.ts
-    ├── app.module.ts
-    ├── entities
-    │   ├── user.entity.ts
-    │   ├── link.entity.ts
-    │   ├── dynamic-link.entity.ts
-    │   ├── click-event.entity.ts
-    │   ├── subscription.entity.ts
-    │   ├── payment.entity.ts
-    │   └── package.entity.ts
-    ├── auth
-    │   ├── auth.module.ts
-    │   ├── auth.service.ts
-    │   ├── auth.controller.ts
-    │   ├── jwt.strategy.ts
-    │   └── dto
-    │       ├── create-user.dto.ts
-    │       └── login.dto.ts
-    ├── users
-    │   ├── users.module.ts
-    │   ├── users.service.ts
-    │   ├── users.controller.ts
-    │   └── dto
-    │       └── update-user.dto.ts
-    ├── links
-    │   ├── links.module.ts
-    │   ├── links.service.ts
-    │   ├── links.controller.ts
-    │   └── dto
-    │       ├── create-link.dto.ts
-    │       ├── update-link.dto.ts
-    │       ├── create-dynamic-link.dto.ts
-    │       └── update-social-meta.dto.ts
-    ├── analytics
-    │   ├── analytics.module.ts
-    │   ├── analytics.service.ts
-    │   └── analytics.controller.ts
-    ├── qr
-    │   ├── qr.module.ts
-    │   ├── qr.service.ts
-    │   └── qr.controller.ts
-    ├── payments
-    │   ├── payments.module.ts
-    │   ├── payments.service.ts
-    │   ├── payments.controller.ts
-    │   └── dto
-    │       ├── create-subscription.dto.ts
-    │       └── update-subscription.dto.ts
-    └── packages
-        ├── packages.module.ts
-        ├── packages.service.ts
-        └── packages.controller.ts
+├── src/
+│   ├── analytics/                 # Analytics module
+│   │   ├── analytics.controller.ts
+│   │   ├── analytics.module.ts
+│   │   └── analytics.service.ts
+│   ├── auth/                     # Authentication module
+│   │   ├── dto/
+│   │   ├── guards/
+│   │   ├── auth.controller.ts
+│   │   └── auth.service.ts
+│   ├── config/                   # Configuration
+│   │   ├── configuration.ts
+│   │   └── env.validation.ts
+│   ├── entities/                 # Database entities
+│   │   ├── user.entity.ts
+│   │   ├── link.entity.ts
+│   │   └── ...
+│   ├── links/                    # Links module
+│   │   ├── dto/
+│   │   ├── links.controller.ts
+│   │   └── links.service.ts
+│   ├── payments/                 # Payments module
+│   │   ├── dto/
+│   │   ├── payments.controller.ts
+│   │   └── stripe.service.ts
+│   ├── qr/                       # QR code module
+│   │   ├── dto/
+│   │   ├── qr.controller.ts
+│   │   └── qr.service.ts
+│   ├── queue/                    # Queue processing
+│   │   ├── processors/
+│   │   └── queue.service.ts
+│   ├── webhooks/                 # Webhooks module
+│   │   ├── dto/
+│   │   └── webhooks.service.ts
+│   ├── app.module.ts
+│   ├── lambda.ts                 # AWS Lambda handler
+│   └── main.ts                   # Application entry point
+├── test/                         # Test files
+├── Dockerfile                    # Docker configuration
+├── docker-compose.yml            # Docker Compose configuration
+├── nest-cli.json                # NestJS CLI configuration
+├── package.json                 # Project dependencies
+├── tsconfig.json               # TypeScript configuration
+└── README.md                   # Project documentation
+```
+
+## API Documentation
+
+### Authentication APIs
+
+#### Sign Up
+```http
+POST /auth/signup
+Content-Type: application/json
+```
+
+Request body:
+```json
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!",
+  "passwordConfirmation": "SecurePass123!",
+  "firstName": "John",
+  "lastName": "Doe",
+  "countryCode": "+1",
+  "phoneNumber": "1234567890",
+  "country": "US"
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "message": "User registered successfully",
+  "data": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "token": "jwt_token"
+  }
+}
+```
+
+#### Login
+```http
+POST /auth/login
+Content-Type: application/json
+```
+
+Request body:
+```json
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!"
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "jwt_token",
+    "user": {
+      "id": "uuid",
+      "email": "user@example.com"
+    }
+  }
+}
+```
+
+### Links APIs
+
+#### Create Short Link
+```http
+POST /api/links
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+Request body:
+```json
+{
+  "originalUrl": "https://example.com/long-url",
+  "alias": "custom-alias",
+  "tags": ["marketing", "social"],
+  "expiresAt": "2024-12-31T23:59:59Z"
+}
+```
+
+Response:
+```json
+{
+  "id": "uuid",
+  "originalUrl": "https://example.com/long-url",
+  "alias": "custom-alias",
+  "shortUrl": "https://blink.ly/custom-alias",
+  "clickCount": 0,
+  "createdAt": "2024-01-01T00:00:00Z"
+}
+```
+
+#### Create Dynamic Link
+```http
+POST /api/dynamic-links
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+Request body:
+```json
+{
+  "name": "App Download Link",
+  "alias": "get-app",
+  "defaultUrl": "https://example.com/download",
+  "rules": [
+    {
+      "platform": "ios",
+      "url": "https://apps.apple.com/app/id123"
+    },
+    {
+      "platform": "android",
+      "url": "https://play.google.com/store/apps/details?id=com.example"
+    }
+  ]
+}
+```
+
+### Analytics APIs
+
+#### Get Link Analytics
+```http
+GET /analytics/link/:id
+Authorization: Bearer <token>
+```
+
+Response:
+```json
+{
+  "totalClicks": 1000,
+  "clicksByCountry": {
+    "US": 500,
+    "UK": 300,
+    "Other": 200
+  },
+  "clicksByDevice": {
+    "Mobile": 600,
+    "Desktop": 400
+  },
+  "clicksByBrowser": {
+    "Chrome": 450,
+    "Safari": 350,
+    "Firefox": 200
+  }
+}
+```
+
+### QR Code APIs
+
+#### Generate QR Code
+```http
+POST /qr
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+Request body:
+```json
+{
+  "linkId": "uuid",
+  "size": 300,
+  "color": "#000000",
+  "backgroundColor": "#FFFFFF",
+  "logoUrl": "https://example.com/logo.png"
+}
+```
+
+### Payments APIs
+
+#### Create Subscription
+```http
+POST /payments/subscriptions
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+Request body:
+```json
+{
+  "planId": "plan_uuid",
+  "paymentMethodId": "pm_..."
+}
 ```
 
 ## Requirements
@@ -93,33 +271,33 @@ blinkly-platform/
 - Node.js (v16+ recommended)
 - npm (v7+ recommended) or Yarn
 - PostgreSQL Database
-- AWS Account (for deployment with Serverless Framework)
+- Redis for caching and queues
+- AWS Account (for deployment)
 - Stripe account for payment processing
 
 ## Installation
 
-1. **Clone the repository:**
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/blinkly-platform.git
+cd blinkly-platform
+```
 
-   ```bash
-   git clone https://github.com/yourusername/blinkly-platform.git
-   cd blinkly-platform
+2. Install dependencies:
+```bash
+npm install
+```
 
-2. **Install dependencies:**
-
-   ```bash
-   git clone https://github.com/yourusername/blinkly-platform.git
-   cd blinkly-platform
- 
-3. **Set up environment variables:**
-
-   ```bash
-   git clone https://github.com/yourusername/blinkly-platform.git
-   cd blinkly-platform
+3. Set up environment variables:
+```bash
+cp .env.example .env
+```
 
 ## Environment Setup
-Create a .env file in the root directory with the following content:
 
-```.dotenv
+Configure your `.env` file with the necessary environment variables:
+
+```dotenv
 # Node Environment
 NODE_ENV=development
 PORT=3000
@@ -137,79 +315,80 @@ JWT_SECRET=your_jwt_secret
 # Stripe Configuration
 STRIPE_SECRET_KEY=your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
-
-# Stripe Price IDs for Monthly Plans
-STRIPE_PRICE_BASIC_MONTHLY=price_basic_monthly_id
-STRIPE_PRICE_PROFESSIONAL_MONTHLY=price_professional_monthly_id
-STRIPE_PRICE_BUSINESS_MONTHLY=price_business_monthly_id
-STRIPE_PRICE_ENTERPRISE_MONTHLY=price_enterprise_monthly_id
-
-# Stripe Price IDs for Yearly Plans
-STRIPE_PRICE_BASIC_YEARLY=price_basic_yearly_id
-STRIPE_PRICE_PROFESSIONAL_YEARLY=price_professional_yearly_id
-STRIPE_PRICE_BUSINESS_YEARLY=price_business_yearly_id
-STRIPE_PRICE_ENTERPRISE_YEARLY=price_enterprise_yearly_id
 ```
-Update each placeholder with your actual configuration values.
 
+## Running in Development
 
-### Running in Development
+1. Start the development server:
+```bash
+npm run start:dev
+```
 
-1. **Start the NestJS application:**
+2. The API will be available at `http://localhost:3000`
 
-   ```bash
-   npm run start:dev
-   ```
-2. The application will run on the port specified in your .env (default: http://localhost:port).
+## Testing
 
-### Testing
+Run the test suite:
 
-Run tests using Jest:
+```bash
+# Unit tests
+npm run test
 
-   ```bash
-   npm run test
-   ```
+# E2E tests
+npm run test:e2e
 
+# Test coverage
+npm run test:cov
+```
 
-### Deployment
+## Deployment
 
-This project uses the Serverless Framework to deploy to AWS Lambda.
+### Using Docker
 
-1. Ensure your AWS credentials are configured (e.g., via the AWS CLI or environment variables).
-2. Configure serverless.yml: 
-   - Update serverless.yml with your AWS region, stage, and environment variables as needed.
-3. Build the project:
+1. Build the Docker image:
+```bash
+docker build -t blinkly-api .
+```
 
-   ```bash
-   npm run build
-   ```
-4. Deploy the application:
+2. Run with Docker Compose:
+```bash
+docker-compose up -d
+```
 
-   ```bash
-   npm run deploy
-   ```
+### Using AWS Lambda
 
-Deployment will package your application using Webpack and deploy it as a Lambda function.
+1. Configure AWS credentials
+2. Deploy using Serverless Framework:
+```bash
+npm run deploy
+```
 
+## Additional Information
 
+### Security Features
 
-### Additional Information
-* Stripe Webhook:
+- JWT-based authentication
+- Rate limiting
+- CORS protection
+- XSS prevention
+- CSRF protection
+- Input validation
+- Request sanitization
+- Helmet security headers
 
-  The /payments/webhook endpoint is set up to receive webhook events from Stripe. Ensure that your Stripe webhook endpoint is configured correctly in your Stripe Dashboard.
+### Monitoring and Logging
 
-* Seeding Packages:
+- Winston logger integration
+- Health checks
+- Error tracking
+- Performance monitoring
 
-  The Packages module automatically seeds the database with subscription packages if none exist. You can retrieve these packages via the GET /packages endpoint.
+### Database Migrations
 
+- TypeORM migrations
+- Automatic schema updates
+- Data seeding for packages
 
-* Further Customization:
+## License
 
-  This project is modular and scalable. Feel free to extend each module as needed (e.g., adding more endpoints, refining business logic, or improving error handling).
-
-#### License
 This project is licensed under the MIT License.
-
-
-
----

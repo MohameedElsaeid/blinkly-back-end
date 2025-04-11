@@ -1,18 +1,18 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import * as helmet from 'helmet';
-import * as compression from 'compression';
-import * as hpp from 'hpp';
-import * as csurf from 'csurf';
-import * as rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import compression from 'compression';
+import hpp from 'hpp';
+import csurf from 'csurf';
+import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
-import * as xss from 'xss';
-import express from 'express';
+import xss from 'xss';
+import { Request, Response, NextFunction } from 'express';
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   // Configure Winston logger
   const logger = WinstonModule.createLogger({
     transports: [
@@ -118,22 +118,16 @@ async function bootstrap() {
   app.use(csurf());
 
   // XSS prevention middleware
-  app.use(
-    (
-      req: express.Request,
-      res: express.Response,
-      next: express.NextFunction,
-    ) => {
-      if (req.body && typeof req.body === 'object') {
-        for (const key in req.body) {
-          if (typeof req.body[key] === 'string') {
-            req.body[key] = xss(req.body[key]);
-          }
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.body && typeof req.body === 'object') {
+      for (const key in req.body) {
+        if (typeof req.body[key] === 'string') {
+          req.body[key] = xss(req.body[key]);
         }
       }
-      next();
-    },
-  );
+    }
+    next();
+  });
 
   // Global validation pipe with stricter options
   app.useGlobalPipes(
@@ -160,11 +154,8 @@ async function bootstrap() {
     SwaggerModule.setup('api', app, document);
   }
 
-  // Increase the default payload size limit with reasonable limits
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ limit: '10mb', extended: true }));
-
-  await app.listen(process.env.PORT ?? 5147);
+  const port = process.env.PORT ?? 5147;
+  await app.listen(port);
 }
 
 void bootstrap();

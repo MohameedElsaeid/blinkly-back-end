@@ -4,14 +4,15 @@ import {
   Context,
 } from 'aws-lambda';
 import { Server } from 'http';
-import { proxy } from 'aws-serverless-express';
+import { createServer, proxy } from 'aws-serverless-express';
 import { bootstrapServer } from './bootstrapServer';
 
 let cachedServer: Server;
 
 async function initializeServer(): Promise<Server> {
   if (!cachedServer) {
-    cachedServer = await bootstrapServer();
+    const server = await bootstrapServer();
+    cachedServer = createServer(server);
   }
   return cachedServer;
 }
@@ -34,26 +35,36 @@ export const handler = async (
     }
     console.log('Parsed body:', parsedBody);
 
-    const proxiedResponse = proxy(server, event, context, 'PROMISE');
-    const result = await (proxiedResponse as { promise: Promise<APIGatewayProxyResult> }).promise;
-    return result;
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      const errorBody = 'body' in error ? (error as { body?: unknown }).body : null;
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          message: error.message,
-          error: errorBody,
-        }),
-      };
+    return await proxy(server, event, context);
+  } catch (error) {
+    // Create a type guard for custom errors that might have a body property
+    interface ErrorWithBody {
+      message: string;
+      body?: unknown;
+    }
+
+    // Type guard function to check if error is ErrorWithBody
+    function isErrorWithBody(err: unknown): err is ErrorWithBody {
+      return (
+        err !== null && typeof err === 'object' && 'message' in err && true
+      );
+    }
+
+    let errorMessage = 'Unknown error occurred';
+    let errorBody: unknown = null;
+
+    if (isErrorWithBody(error)) {
+      errorMessage = error.message;
+      errorBody = error.body;
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
     }
 
     return {
       statusCode: 500,
       body: JSON.stringify({
-        message: 'Unknown error occurred',
-        error: null,
+        message: errorMessage,
+        error: errorBody,
       }),
     };
   }

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { createHmac } from 'crypto';
 import {
   WebhookEndpoint,
   WebhookEventType,
@@ -33,7 +34,7 @@ export class WebhooksService {
   async triggerWebhook(
     userId: string,
     event: WebhookEventType,
-    payload: any,
+    payload: unknown,
   ): Promise<void> {
     const webhooks = await this.webhookEndpointRepository.find({
       where: {
@@ -61,7 +62,7 @@ export class WebhooksService {
         });
       } catch (error) {
         this.logger.error(
-          `Failed to trigger webhook ${webhook.id}: ${error.message}`,
+          `Failed to trigger webhook ${webhook.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
 
         webhook.failedAttempts += 1;
@@ -71,9 +72,8 @@ export class WebhooksService {
     }
   }
 
-  private generateSignature(secret: string, payload: any): string {
-    const crypto = require('crypto');
+  private generateSignature(secret: string, payload: unknown): string {
     const data = JSON.stringify(payload);
-    return crypto.createHmac('sha256', secret).update(data).digest('hex');
+    return createHmac('sha256', secret).update(data).digest('hex');
   }
 }

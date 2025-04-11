@@ -1,14 +1,15 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-  Req,
   HttpCode,
   HttpStatus,
+  InternalServerErrorException,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { LinksService } from './links.service';
 import { CreateLinkDto } from './dto/create-link.dto';
@@ -19,6 +20,17 @@ import { IAuthenticatedRequest } from '@/interfaces/request.interface';
 import { Link } from '@/entities/link.entity';
 import { DynamicLink } from '@/entities/dynamic-link.entity';
 import { ClickEvent } from '@/entities/click-event.entity';
+
+interface AnalyticsResponse {
+  totalClicks: number;
+  clicksByDate: Record<string, number>;
+  browsers?: Record<string, number>;
+  operatingSystems?: Record<string, number>;
+  countries?: Record<string, number>;
+  referrers?: Record<string, number>;
+  utmSources?: Record<string, number>;
+  devices?: Record<string, number>;
+}
 
 @Controller('api')
 @UseGuards(JwtAuthGuard, ThrottlerGuard)
@@ -51,12 +63,19 @@ export class LinksController {
     @Req() req: IAuthenticatedRequest,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-  ): Promise<Record<string, unknown>> {
-    return await this.linksService.getAnalytics(
-      req.user.id,
-      startDate ? new Date(startDate) : undefined,
-      endDate ? new Date(endDate) : undefined,
-    );
+  ): Promise<AnalyticsResponse> {
+    try {
+      return await this.linksService.getAnalytics(
+        req.user.id,
+        startDate ? new Date(startDate) : undefined,
+        endDate ? new Date(endDate) : undefined,
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new InternalServerErrorException(error.message);
+      }
+      throw new InternalServerErrorException('An unexpected error occurred');
+    }
   }
 
   @Get('links/:id/clicks')

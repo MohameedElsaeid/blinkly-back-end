@@ -33,6 +33,13 @@ interface IAnalyticsResponse {
   devices?: Record<string, number>;
 }
 
+interface IPaginationOptions {
+  page: number;
+  limit: number;
+  sortBy: string;
+  sortOrder: 'ASC' | 'DESC';
+}
+
 @Injectable()
 export class LinksService {
   private readonly logger = new Logger(LinksService.name);
@@ -49,6 +56,101 @@ export class LinksService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {}
+
+  async getUserLinks(userId: string, options: IPaginationOptions) {
+    try {
+      const [links, total] = await this.linkRepository.findAndCount({
+        where: { user: { id: userId } },
+        relations: ['clickEvents'],
+        order: { [options.sortBy]: options.sortOrder },
+        skip: (options.page - 1) * options.limit,
+        take: options.limit,
+      });
+
+      return {
+        links,
+        pagination: {
+          total,
+          page: options.page,
+          limit: options.limit,
+          totalPages: Math.ceil(total / options.limit),
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get user links: ${error.message}`);
+      throw new InternalServerErrorException('Failed to retrieve links');
+    }
+  }
+
+  async getLinkDetails(linkId: string, userId: string) {
+    try {
+      const link = await this.linkRepository.findOne({
+        where: { id: linkId, user: { id: userId } },
+        relations: ['user', 'clickEvents', 'qrCodes'],
+      });
+
+      if (!link) {
+        throw new NotFoundException('Link not found');
+      }
+
+      // Calculate additional statistics
+      const clicksByDate = this.calculateClicksByDate(link.clickEvents);
+      const clicksByCountry = this.calculateClicksByMetric(
+        link.clickEvents,
+        'country',
+      );
+      const clicksByDevice = this.calculateClicksByMetric(
+        link.clickEvents,
+        'deviceModel',
+      );
+      const clicksByBrowser = this.calculateClicksByMetric(
+        link.clickEvents,
+        'browserName',
+      );
+
+      return {
+        ...link,
+        statistics: {
+          totalClicks: link.clickCount,
+          clicksByDate,
+          clicksByCountry,
+          clicksByDevice,
+          clicksByBrowser,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get link details: ${error.message}`);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to retrieve link details');
+    }
+  }
+
+  private calculateClicksByDate(clicks: ClickEvent[]): Record<string, number> {
+    return clicks.reduce(
+      (acc, click) => {
+        const date = click.timestamp.toISOString().split('T')[0];
+        acc[date] = (acc[date] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+  }
+
+  private calculateClicksByMetric(
+    clicks: ClickEvent[],
+    metric: keyof ClickEvent,
+  ): Record<string, number> {
+    return clicks.reduce(
+      (acc, click) => {
+        const value = (click[metric] as string) || 'Unknown';
+        acc[value] = (acc[value] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+  }
 
   async createLink(
     userId: string,

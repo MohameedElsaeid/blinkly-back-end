@@ -1,0 +1,34 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { User } from '../entities/user.entity';
+import { PassportModule } from '@nestjs/passport';
+import { LocalStrategy } from './strategies/local.strategy';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { UserSubscription } from '../entities/user-subscription.entity';
+import { Plan } from '../entities/plan.entity';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([User, Plan, UserSubscription]),
+    PassportModule,
+    ConfigModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        // Make sure both signing and verification use the same secret.
+        secret:
+          configService.get<string>('JWT_SECRET') ||
+          'pI4JjN2LmnX9b7A3TzcM5qL8C2FdR3Gh',
+        signOptions: { expiresIn: '1d' },
+      }),
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, LocalStrategy, JwtStrategy],
+})
+export class AuthModule {}

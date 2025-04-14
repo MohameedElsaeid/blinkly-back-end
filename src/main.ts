@@ -6,28 +6,27 @@ import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
-  // Create the NestJS application with body parser enabled
+  // Create the NestJS application with body parser enabled.
   const app = await NestFactory.create(AppModule, { bodyParser: true });
   const isProd = process.env.NODE_ENV === 'production';
-  console.log('NODE_ENV is:', process.env.NODE_ENV);
 
-  // Set trust proxy on the underlying Express instance
+  // Set trust proxy on the underlying Express instance (if behind a proxy)
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
-  // Apply Helmet for setting secure HTTP headers
+  // Apply Helmet to set various HTTP security headers.
   app.use(
     helmet({
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'"], // adjust if you load external scripts
+          scriptSrc: ["'self'"],
           objectSrc: ["'none'"],
           upgradeInsecureRequests: [],
         },
       },
       hsts: {
-        maxAge: 31536000, // one year in seconds
+        maxAge: 31536000, // 1 year in seconds
         includeSubDomains: true,
         preload: true,
       },
@@ -37,30 +36,46 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  // Use cookie-parser to handle cookies
+  // Use cookie-parser to support cookie handling
   app.use(cookieParser());
 
-  // (Optional) Apply rate limiting in production to mitigate abuse/DDoS attacks
+  // (Optional) Apply rate limiting in production to mitigate abuse/DDoS attacks.
   if (isProd) {
     app.use(
       rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100, // limit each IP to 100 requests per windowMs
+        max: 100, // limit each IP to 100 requests per window
         standardHeaders: true,
         legacyHeaders: false,
       }),
     );
   }
 
-  // Enable CORS: in production, allow only trusted origins; in development, allow all origins
+  // CORS configuration:
+  // In production, use a dynamic origin callback to allow only our trusted front-end domains.
   if (isProd) {
     app.enableCors({
-      origin: ['https://blinkly.app', 'https://www.blinkly.app'],
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, etc.)
+        if (!origin) {
+          return callback(null, true);
+        }
+        const allowedOrigins = [
+          'https://blinkly.app',
+          'https://www.blinkly.app',
+        ];
+        if (allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error(`Origin ${origin} not allowed by CORS`));
+        }
+      },
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
       credentials: true,
       allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
     });
   } else {
+    // Development: Allow all origins.
     app.enableCors({
       origin: true,
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -69,7 +84,7 @@ async function bootstrap(): Promise<void> {
     });
   }
 
-  // Set up a global validation pipe with request transformation and whitelisting
+  // Set up a global validation pipe for sanitizing and transforming incoming requests
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -87,13 +102,15 @@ async function bootstrap(): Promise<void> {
       .setVersion('1.0')
       .addBearerAuth()
       .build();
+
     const document = SwaggerModule.createDocument(app, swaggerConfig);
+    // The Swagger docs will be available at /api
     SwaggerModule.setup('api', app, document);
   }
 
-  // Start listening on the designated port
   const port = process.env.PORT || 5147;
   await app.listen(port);
+  console.log('NODE_ENV is:', process.env.NODE_ENV);
   console.log(`Application is running on: http://localhost:${port}`);
 }
 

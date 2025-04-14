@@ -92,13 +92,15 @@ async function bootstrap(): Promise<void> {
       'X-Request-ID',
       'X-Request-Time',
       'DNT',
-      'Sec-Ch-Ua',
-      'Sec-Ch-Ua-Mobile',
-      'Sec-Ch-Ua-Platform',
+      'Sec-CH-UA',
+      'Sec-CH-UA-Mobile',
+      'Sec-CH-UA-Platform',
     ],
     exposedHeaders: ['x-csrf-token'],
     credentials: true,
     maxAge: 86400,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   // Validation Pipe

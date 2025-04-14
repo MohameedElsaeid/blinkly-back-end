@@ -24,6 +24,7 @@ import { UserSubscription } from './entities/user-subscription.entity';
 import { PackagesModule } from './packages/packages.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RedirectModule } from './redirect/redirect.service';
+import { CsrfController } from './csrf/csrf.controller';
 
 const redisStoreFactory: any = redisStore;
 
@@ -115,7 +116,7 @@ const redisStoreFactory: any = redisStore;
     PaymentsModule,
     RedirectModule,
   ],
-  controllers: [],
+  controllers: [CsrfController],
   providers: [],
 })
 export class AppModule {

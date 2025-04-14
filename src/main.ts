@@ -9,6 +9,7 @@ async function bootstrap(): Promise<void> {
   // Create the NestJS application with body parser enabled
   const app = await NestFactory.create(AppModule, { bodyParser: true });
   const isProd = process.env.NODE_ENV === 'production';
+  console.log('NODE_ENV is:', process.env.NODE_ENV);
 
   // Set trust proxy on the underlying Express instance
   app.getHttpAdapter().getInstance().set('trust proxy', 1);

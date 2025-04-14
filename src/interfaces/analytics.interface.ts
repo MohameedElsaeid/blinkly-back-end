@@ -1,6 +1,5 @@
 import { ClickEvent } from '../entities/click-event.entity';
 
-// Interfaces for raw query results to ensure safe property access.
 export interface DeviceMetric {
   device: string;
   count: string;
@@ -31,6 +30,19 @@ export interface IClickData {
   utmCampaign?: string;
   utmTerm?: string;
   utmContent?: string;
+  // Cloudflare headers
+  cfRay?: string;
+  cfVisitor?: string;
+  cfDeviceType?: string;
+  cfMetroCode?: string;
+  cfRegion?: string;
+  cfRegionCode?: string;
+  cfConnectingIp?: string;
+  cfIpCity?: string;
+  cfIpContinent?: string;
+  cfIpLatitude?: string;
+  cfIpLongitude?: string;
+  cfIpTimeZone?: string;
 }
 
 export interface IAnalyticsOverview {

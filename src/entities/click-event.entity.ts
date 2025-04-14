@@ -69,6 +69,43 @@ export class ClickEvent {
   @Column({ nullable: true })
   utmContent: string;
 
+  // Cloudflare headers
+  @Column({ nullable: true })
+  cfRay: string;
+
+  @Column({ nullable: true })
+  cfVisitor: string;
+
+  @Column({ nullable: true })
+  cfDeviceType: string;
+
+  @Column({ nullable: true })
+  cfMetroCode: string;
+
+  @Column({ nullable: true })
+  cfRegion: string;
+
+  @Column({ nullable: true })
+  cfRegionCode: string;
+
+  @Column({ nullable: true })
+  cfConnectingIp: string;
+
+  @Column({ nullable: true })
+  cfIpCity: string;
+
+  @Column({ nullable: true })
+  cfIpContinent: string;
+
+  @Column({ nullable: true })
+  cfIpLatitude: string;
+
+  @Column({ nullable: true })
+  cfIpLongitude: string;
+
+  @Column({ nullable: true })
+  cfIpTimeZone: string;
+
   @ManyToOne(() => Link, (link) => link.clickEvents)
   link: Link;
 

@@ -106,7 +106,6 @@ export class AnalyticsService {
       throw new BadRequestException('Dynamic link is not active');
     }
     try {
-      // Ensure clickData.userAgent is treated as a string.
       const ua = new UAParser(String(clickData.userAgent));
       const clickEvent = this.dynamicClickEventRepository.create({
         dynamicLink,

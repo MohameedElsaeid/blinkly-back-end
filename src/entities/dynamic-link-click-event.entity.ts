@@ -12,7 +12,6 @@ export class DynamicLinkClickEvent {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // Basic client connection details
   @Column({ nullable: true })
   ipAddress: string;
 
@@ -22,12 +21,11 @@ export class DynamicLinkClickEvent {
   @Column({ nullable: true })
   referrer: string;
 
-  // Enhanced geolocation details
   @Column({ nullable: true })
   country: string;
 
   @Column({ nullable: true })
-  state: string; // e.g., region/province
+  state: string;
 
   @Column({ nullable: true })
   city: string;
@@ -38,7 +36,6 @@ export class DynamicLinkClickEvent {
   @Column({ nullable: true, type: 'decimal', precision: 9, scale: 6 })
   longitude: number;
 
-  // Enhanced device and browser details
   @Column({ nullable: true })
   operatingSystem: string;
 
@@ -54,7 +51,6 @@ export class DynamicLinkClickEvent {
   @Column({ nullable: true })
   deviceModel: string;
 
-  // Session and marketing/tracking details
   @Column({ nullable: true })
   sessionId: string;
 
@@ -72,6 +68,43 @@ export class DynamicLinkClickEvent {
 
   @Column({ nullable: true })
   utmContent: string;
+
+  // Cloudflare headers
+  @Column({ nullable: true })
+  cfRay: string;
+
+  @Column({ nullable: true })
+  cfVisitor: string;
+
+  @Column({ nullable: true })
+  cfDeviceType: string;
+
+  @Column({ nullable: true })
+  cfMetroCode: string;
+
+  @Column({ nullable: true })
+  cfRegion: string;
+
+  @Column({ nullable: true })
+  cfRegionCode: string;
+
+  @Column({ nullable: true })
+  cfConnectingIp: string;
+
+  @Column({ nullable: true })
+  cfIpCity: string;
+
+  @Column({ nullable: true })
+  cfIpContinent: string;
+
+  @Column({ nullable: true })
+  cfIpLatitude: string;
+
+  @Column({ nullable: true })
+  cfIpLongitude: string;
+
+  @Column({ nullable: true })
+  cfIpTimeZone: string;
 
   @ManyToOne(() => DynamicLink, (dynamicLink) => dynamicLink.clickEvents)
   dynamicLink: DynamicLink;

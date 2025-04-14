@@ -25,6 +25,8 @@ import { PackagesModule } from './packages/packages.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RedirectModule } from './redirect/redirect.service';
 import { CsrfController } from './csrf/csrf.controller';
+import { VisitorModule } from './visitor/visitor.module';
+import { Visitor } from './entities/visitor.entity';
 
 const redisStoreFactory: any = redisStore;
 
@@ -52,7 +54,6 @@ const redisStoreFactory: any = redisStore;
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.name'),
-        // Include your entities
         entities: [
           User,
           Link,
@@ -64,15 +65,11 @@ const redisStoreFactory: any = redisStore;
           Plan,
           UserSubscription,
           WebhookEndpoint,
+          Visitor,
         ],
-        // Add the migrations property with a proper glob path to your compiled migration files.
-        // Adjust the path based on your build output.
         migrations: [__dirname + '/../migrations/*.js'],
-        // Optionally, you can set migrationsRun: true to automatically run pending migrations on app startup.
-        // migrationsRun: true,
         synchronize: configService.get<boolean>('database.synchronize'),
         logging: configService.get<boolean>('database.logging'),
-        // Enable SSL with rejection disabled (if DATABASE_SSL is true).
         ssl: configService.get<boolean>('database.ssl')
           ? { rejectUnauthorized: false }
           : false,
@@ -115,11 +112,9 @@ const redisStoreFactory: any = redisStore;
     PackagesModule,
     PaymentsModule,
     RedirectModule,
+    VisitorModule,
   ],
   controllers: [CsrfController],
   providers: [],
 })
-export class AppModule {
-  // Optionally, inject DataSource for manual usage if needed.
-  // constructor(private dataSource: DataSource) {}
-}
+export class AppModule {}

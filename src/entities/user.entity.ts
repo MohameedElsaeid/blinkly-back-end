@@ -17,6 +17,7 @@ import { Link } from './link.entity';
 import { UserSubscription } from './user-subscription.entity';
 import { QrCode } from './qr-code.entity';
 import { WebhookEndpoint } from './webhook-endpoint.entity';
+import { Visitor } from './visitor.entity';
 
 export enum UserRole {
   USER = 'USER',
@@ -101,6 +102,9 @@ export class User {
 
   @OneToMany(() => WebhookEndpoint, (webhook) => webhook.user)
   webhookEndpoints: WebhookEndpoint[];
+
+  @OneToMany(() => Visitor, (visitor) => visitor.user)
+  visitors: Visitor[];
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;

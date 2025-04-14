@@ -6,13 +6,12 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as geoip from 'geoip-lite';
-import { UAParser } from 'ua-parser-js';
 import { Request } from 'express';
 import { Link } from '../entities/link.entity';
 import { DynamicLink } from '../entities/dynamic-link.entity';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { IClickData } from '../interfaces/analytics.interface';
+import { UAParser } from 'ua-parser-js';
 
 interface RedirectResponse {
   url: string;
@@ -37,22 +36,27 @@ export class RedirectService {
     req: Request,
   ): Promise<RedirectResponse> {
     try {
-      // First, try to find a standard link
       const link = await this.linkRepository.findOne({
         where: { alias },
       });
 
       if (link) {
-        return this.handleStandardLink(link, clickData);
+        return this.handleStandardLink(
+          link,
+          this.enrichClickData(clickData, req),
+        );
       }
 
-      // If no standard link is found, try to find a dynamic link
       const dynamicLink = await this.dynamicLinkRepository.findOne({
         where: { alias },
       });
 
       if (dynamicLink) {
-        return this.handleDynamicLink(dynamicLink, clickData, req);
+        return this.handleDynamicLink(
+          dynamicLink,
+          this.enrichClickData(clickData, req),
+          req,
+        );
       }
 
       throw new NotFoundException('Link not found');
@@ -64,9 +68,59 @@ export class RedirectService {
     }
   }
 
+  private enrichClickData(
+    clickData: Partial<IClickData>,
+    req: Request,
+  ): IClickData {
+    const headers = req.headers;
+
+    // Get geolocation data from Cloudflare headers or fallback to existing data
+    const geoData = {
+      country: headers['cf-ipcountry'] || clickData.country || 'Unknown',
+      city: headers['cf-ipcity'] || clickData.city || 'Unknown',
+      latitude: headers['cf-iplatitude'] || clickData.latitude || null,
+      longitude: headers['cf-iplongitude'] || clickData.longitude || null,
+    };
+
+    return {
+      ...clickData,
+      ...geoData,
+      cfRay: (headers['cf-ray'] as string) || 'Unknown',
+      cfVisitor: (headers['cf-visitor'] as string) || 'Unknown',
+      cfDeviceType: (headers['cf-device-type'] as string) || 'Unknown',
+      cfMetroCode: (headers['cf-metro-code'] as string) || 'Unknown',
+      cfRegion: (headers['cf-region'] as string) || 'Unknown',
+      cfRegionCode: (headers['cf-region-code'] as string) || 'Unknown',
+      cfConnectingIp:
+        (headers['cf-connecting-ip'] as string) ||
+        clickData.ipAddress ||
+        'Unknown',
+      cfIpCity: (headers['cf-ipcity'] as string) || geoData.city,
+      cfIpContinent: (headers['cf-ipcontinent'] as string) || 'Unknown',
+      cfIpLatitude:
+        (headers['cf-iplatitude'] as string) || String(geoData.latitude),
+      cfIpLongitude:
+        (headers['cf-iplongitude'] as string) || String(geoData.longitude),
+      cfIpTimeZone: (headers['cf-iptimezone'] as string) || 'Unknown',
+      // Ensure base click data has fallback values
+      ipAddress:
+        clickData.ipAddress ||
+        (headers['cf-connecting-ip'] as string) ||
+        'Unknown',
+      userAgent:
+        clickData.userAgent || (headers['user-agent'] as string) || 'Unknown',
+      referrer:
+        clickData.referrer || (headers['referer'] as string) || 'Unknown',
+      country: geoData.country,
+      city: geoData.city,
+      latitude: geoData.latitude,
+      longitude: geoData.longitude,
+    } as IClickData;
+  }
+
   private async handleStandardLink(
     link: Link,
-    clickData: Partial<IClickData>,
+    clickData: IClickData,
   ): Promise<RedirectResponse> {
     if (!link.isActive) {
       throw new BadRequestException('Link is not active');
@@ -76,14 +130,7 @@ export class RedirectService {
       throw new BadRequestException('Link has expired');
     }
 
-    // Enrich click data with geolocation
-    const enrichedClickData = this.enrichClickData(clickData);
-
-    // Record the click event
-    await this.analyticsService.recordClickForLink(
-      link.alias,
-      enrichedClickData,
-    );
+    await this.analyticsService.recordClickForLink(link.alias, clickData);
 
     return {
       url: link.originalUrl,
@@ -93,28 +140,22 @@ export class RedirectService {
 
   private async handleDynamicLink(
     dynamicLink: DynamicLink,
-    clickData: Partial<IClickData>,
+    clickData: IClickData,
     req: Request,
   ): Promise<RedirectResponse> {
     if (!dynamicLink.isActive) {
       throw new BadRequestException('Dynamic link is not active');
     }
 
-    // Determine the appropriate URL based on the user's platform
     const targetUrl = this.determineTargetUrl(dynamicLink, req);
-
-    // Enrich click data with geolocation
-    const enrichedClickData = this.enrichClickData(clickData);
-
-    // Record the click event
     await this.analyticsService.recordClickForDynamicLink(
       dynamicLink.alias,
-      enrichedClickData,
+      clickData,
     );
 
     return {
       url: targetUrl,
-      statusCode: 302, // Always use temporary redirect for dynamic links
+      statusCode: 302,
     };
   }
 
@@ -122,7 +163,6 @@ export class RedirectService {
     const ua = new UAParser(req.headers['user-agent']);
     const os = ua.getOS();
 
-    // Find matching rule based on platform and version requirements
     const matchingRule = dynamicLink.rules.find((rule) => {
       if (rule.platform === 'ios' && os.name?.toLowerCase().includes('ios')) {
         return (
@@ -139,32 +179,10 @@ export class RedirectService {
           this.compareVersions(os.version || '', rule.minimumVersion) >= 0
         );
       }
-      if (rule.platform === 'web') {
-        return true; // Web is the fallback platform
-      }
-      return false;
+      return rule.platform === 'web';
     });
 
     return matchingRule ? matchingRule.url : dynamicLink.defaultUrl;
-  }
-
-  private enrichClickData(clickData: Partial<IClickData>): IClickData {
-    const geo = clickData.ipAddress ? geoip.lookup(clickData.ipAddress) : null;
-    const ua = new UAParser(clickData.userAgent);
-
-    return {
-      ...clickData,
-      country: geo?.country || 'Unknown',
-      state: geo?.region || 'Unknown',
-      city: geo?.city || 'Unknown',
-      latitude: geo?.ll?.[0] || 0,
-      longitude: geo?.ll?.[1] || 0,
-      operatingSystem: ua.getOS().name || 'Unknown',
-      osVersion: ua.getOS().version || 'Unknown',
-      browserName: ua.getBrowser().name || 'Unknown',
-      browserVersion: ua.getBrowser().version || 'Unknown',
-      deviceModel: ua.getDevice().model || 'Unknown',
-    } as IClickData;
   }
 
   private compareVersions(version1: string, version2: string): number {

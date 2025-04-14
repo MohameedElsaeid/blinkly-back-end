@@ -51,6 +51,7 @@ const redisStoreFactory: any = redisStore;
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.name'),
+        // Include your entities
         entities: [
           User,
           Link,
@@ -63,9 +64,14 @@ const redisStoreFactory: any = redisStore;
           UserSubscription,
           WebhookEndpoint,
         ],
+        // Add the migrations property with a proper glob path to your compiled migration files.
+        // Adjust the path based on your build output.
+        migrations: [__dirname + '/../migrations/*.js'],
+        // Optionally, you can set migrationsRun: true to automatically run pending migrations on app startup.
+        // migrationsRun: true,
         synchronize: configService.get<boolean>('database.synchronize'),
         logging: configService.get<boolean>('database.logging'),
-        // When using SSL in production, force encryption with rejection disabled
+        // Enable SSL with rejection disabled (if DATABASE_SSL is true).
         ssl: configService.get<boolean>('database.ssl')
           ? { rejectUnauthorized: false }
           : false,
@@ -112,4 +118,7 @@ const redisStoreFactory: any = redisStore;
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule {
+  // Optionally, inject DataSource for manual usage if needed.
+  // constructor(private dataSource: DataSource) {}
+}

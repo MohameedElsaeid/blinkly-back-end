@@ -10,7 +10,7 @@ export default new DataSource({
   username: process.env.DATABASE_USERNAME || 'postgres',
   database: process.env.DATABASE_NAME || 'blinkly_db',
   password: process.env.DATABASE_PASSWORD || 'postgres',
-  schema: process.env.DATABASE_SCHEMA || 'blinkly_db_schema',
+  schema: process.env.DATABASE_SCHEMA || 'public',
   // Point to compiled .js files in dist rather than .ts
   entities: ['dist/entities/**/*.entity.js'],
   migrations: ['dist/migrations/*.js'],

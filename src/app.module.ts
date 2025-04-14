@@ -65,7 +65,10 @@ const redisStoreFactory: any = redisStore;
         ],
         synchronize: configService.get<boolean>('database.synchronize'),
         logging: configService.get<boolean>('database.logging'),
-        ssl: configService.get<boolean>('database.ssl'),
+        // When using SSL in production, force encryption with rejection disabled
+        ssl: configService.get<boolean>('database.ssl')
+          ? { rejectUnauthorized: false }
+          : false,
         poolSize: 20,
         extra: {
           max: 20,

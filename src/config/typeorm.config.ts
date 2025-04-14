@@ -14,4 +14,7 @@ export default new DataSource({
   entities: ['src/entities/**/*.entity.ts'],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
+  // Enable SSL if DATABASE_SSL is "true" and bypass certificate validation
+  ssl:
+    process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
 });

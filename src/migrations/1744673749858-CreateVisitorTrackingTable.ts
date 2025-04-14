@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateVisitorTrackingTable implements MigrationInterface {
+export class CreateVisitorTrackingTable1744673749858
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Create the visitors table
     await queryRunner.query(`

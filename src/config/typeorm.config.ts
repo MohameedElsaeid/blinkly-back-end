@@ -11,10 +11,10 @@ export default new DataSource({
   database: process.env.DATABASE_NAME || 'blinkly_db',
   password: process.env.DATABASE_PASSWORD || 'postgres',
   schema: process.env.DATABASE_SCHEMA || 'blinkly_db_schema',
-  entities: ['src/entities/**/*.entity.ts'],
-  migrations: ['src/migrations/*.ts'],
+  // Point to compiled .js files in dist rather than .ts
+  entities: ['dist/entities/**/*.entity.js'],
+  migrations: ['dist/migrations/*.js'],
   synchronize: false,
-  // Enable SSL if DATABASE_SSL is "true" and bypass certificate validation
   ssl:
     process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
 });

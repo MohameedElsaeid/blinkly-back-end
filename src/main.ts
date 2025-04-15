@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
@@ -12,6 +12,15 @@ async function bootstrap(): Promise<void> {
   const isProd = process.env.NODE_ENV === 'production';
 
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  const httpLogger = new Logger('HTTP');
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    httpLogger.log(`Incoming Request: ${req.method} ${req.url}`);
+    // Log headers in a pretty format
+    httpLogger.debug(`Headers:\n${JSON.stringify(req.headers, null, 2)}`);
+    // Log body only if available; can be empty for GET requests
+    httpLogger.debug(`Body:\n${JSON.stringify(req.body, null, 2)}`);
+    next();
+  });
 
   app.use(
     helmet({
@@ -113,6 +122,7 @@ async function bootstrap(): Promise<void> {
       'Sec-Ch-Ua',
       'Sec-Ch-Ua-Mobile',
       'Sec-Ch-Ua-Platform',
+      // Cloudflare Headers
       'CF-IPCountry',
       'CF-Ray',
       'CF-Visitor',
@@ -127,6 +137,7 @@ async function bootstrap(): Promise<void> {
       'CF-IPLongitude',
       'CF-IPTimeZone',
       'x-forward-cloudflare-headers',
+      // Tracking headers from frontend
       'X-User-Agent',
       'X-Language',
       'X-Platform',
@@ -136,6 +147,7 @@ async function bootstrap(): Promise<void> {
       'X-Color-Depth',
       'X-Hardware-Concurrency',
       'X-Device-Memory',
+      'X-Custom-Header',
     ],
     exposedHeaders: ['x-csrf-token'],
     credentials: true,

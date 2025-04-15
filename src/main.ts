@@ -20,10 +20,37 @@ async function bootstrap(): Promise<void> {
       contentSecurityPolicy: isProd
         ? {
             directives: {
-              defaultSrc: ["'self'"],
-              scriptSrc: ["'self'"],
-              objectSrc: ["'none'"],
-              upgradeInsecureRequests: [],
+              defaultSrc: ["'self'", 'https:'], // Allow any HTTPS source
+              scriptSrc: [
+                "'self'",
+                "'unsafe-inline'", // Required for many trackers
+                "'unsafe-eval'", // Required for some analytics
+                'https:',
+                'data:',
+              ],
+              connectSrc: [
+                "'self'",
+                'https://*', // Allow all HTTPS connections
+                'wss://*', // Allow WebSocket connections
+              ],
+              imgSrc: [
+                "'self'",
+                'data:',
+                'https://*', // Allow images from any HTTPS source
+                'blob:',
+              ],
+              styleSrc: [
+                "'self'",
+                "'unsafe-inline'", // Allow inline styles
+                'https://fonts.googleapis.com',
+              ],
+              fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+              frameSrc: [
+                'https://*', // Allow iframes from any HTTPS source
+              ],
+              objectSrc: ["'none'"], // Disallow dangerous object tags
+              formAction: ["'self'"], // Only allow form submissions to your domain
+              upgradeInsecureRequests: isProd ? [] : null,
             },
           }
         : false,

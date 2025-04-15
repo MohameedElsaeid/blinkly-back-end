@@ -13,43 +13,41 @@ async function bootstrap(): Promise<void> {
 
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
-  // Helmet configuration
   app.use(
     helmet({
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
       contentSecurityPolicy: isProd
         ? {
             directives: {
-              defaultSrc: ["'self'", 'https:'], // Allow any HTTPS source
+              defaultSrc: ["'self'", 'https:'],
               scriptSrc: [
                 "'self'",
-                "'unsafe-inline'", // Required for many trackers
-                "'unsafe-eval'", // Required for some analytics
+                "'unsafe-inline'",
+                "'unsafe-eval'",
+                'https://www.googletagmanager.com',
+                'https://www.google-analytics.com',
+                'https://connect.facebook.net',
+                'https://analytics.google.com',
+                'https://cdn.gpteng.co',
                 'https:',
-                'data:',
               ],
-              connectSrc: [
-                "'self'",
-                'https://*', // Allow all HTTPS connections
-                'wss://*', // Allow WebSocket connections
-              ],
-              imgSrc: [
-                "'self'",
-                'data:',
-                'https://*', // Allow images from any HTTPS source
-                'blob:',
-              ],
+              connectSrc: ["'self'", 'https:', 'wss:'],
+              imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
               styleSrc: [
                 "'self'",
-                "'unsafe-inline'", // Allow inline styles
+                "'unsafe-inline'",
                 'https://fonts.googleapis.com',
+                'https:',
               ],
-              fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-              frameSrc: [
-                'https://*', // Allow iframes from any HTTPS source
+              fontSrc: [
+                "'self'",
+                'https://fonts.gstatic.com',
+                'data:',
+                'https:',
               ],
-              objectSrc: ["'none'"], // Disallow dangerous object tags
-              formAction: ["'self'"], // Only allow form submissions to your domain
+              frameSrc: ["'self'", 'https:'],
+              objectSrc: ["'none'"],
+              formAction: ["'self'"],
               upgradeInsecureRequests: isProd ? [] : null,
             },
           }
@@ -67,10 +65,8 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  // Cookie parser must come before CSRF middleware
   app.use(cookieParser());
 
-  // CSRF Configuration
   const { doubleCsrfProtection, generateToken } = doubleCsrf({
     getSecret: () =>
       process.env.CSRF_SECRET || 'pI4JjN2LmnX9b7A3TzcM5qL8C2FdR3Gs',
@@ -80,23 +76,19 @@ async function bootstrap(): Promise<void> {
       sameSite: isProd ? 'strict' : 'lax',
       httpOnly: true,
       path: '/',
-      maxAge: 60 * 60 * 24, // 24 hours
+      maxAge: 60 * 60 * 24,
     },
     size: 64,
     ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
   });
 
-  // CSRF Middleware
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // Generate token with both req and res
     res.locals.csrfToken = generateToken(req, res);
     next();
   });
 
-  // Apply CSRF protection
   app.use(doubleCsrfProtection);
 
-  // Rate limiting
   if (isProd) {
     app.use(
       rateLimit({
@@ -108,7 +100,6 @@ async function bootstrap(): Promise<void> {
     );
   }
 
-  // CORS Configuration
   app.enableCors({
     origin: isProd ? ['https://blinkly.app', 'https://www.blinkly.app'] : true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -122,7 +113,6 @@ async function bootstrap(): Promise<void> {
       'Sec-Ch-Ua',
       'Sec-Ch-Ua-Mobile',
       'Sec-Ch-Ua-Platform',
-      // Cloudflare IP Geolocation Headers
       'CF-IPCountry',
       'CF-Ray',
       'CF-Visitor',
@@ -137,13 +127,21 @@ async function bootstrap(): Promise<void> {
       'CF-IPLongitude',
       'CF-IPTimeZone',
       'x-forward-cloudflare-headers',
+      'X-User-Agent',
+      'X-Language',
+      'X-Platform',
+      'X-Screen-Width',
+      'X-Screen-Height',
+      'X-Time-Zone',
+      'X-Color-Depth',
+      'X-Hardware-Concurrency',
+      'X-Device-Memory',
     ],
     exposedHeaders: ['x-csrf-token'],
     credentials: true,
     maxAge: 86400,
   });
 
-  // Validation Pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -152,7 +150,6 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  // Swagger (Dev only)
   if (!isProd) {
     const { DocumentBuilder, SwaggerModule } = await import('@nestjs/swagger');
     const swaggerConfig = new DocumentBuilder()
@@ -169,7 +166,6 @@ async function bootstrap(): Promise<void> {
     );
   }
 
-  // Start server
   const port = process.env.PORT || 5147;
   await app.listen(port, () => {
     console.log(

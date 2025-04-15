@@ -13,6 +13,7 @@ export class VisitorMiddleware implements NestMiddleware {
   async use(req: Request, res: Response, next: NextFunction) {
     try {
       const authHeader = req.headers.authorization;
+      console.log(`authHeader: ${authHeader}`);
       if (authHeader) {
         const token = authHeader.split(' ')[1];
         const payload = this.jwtService.verify(token);

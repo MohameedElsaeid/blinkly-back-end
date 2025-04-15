@@ -31,37 +31,12 @@ export class CreateVisitorTrackingTable1744673749858
       );
     `);
 
-    // Enable Row Level Security on the visitors table
+    // Optionally enable Row Level Security if required
     await queryRunner.query(`ALTER TABLE visitors ENABLE ROW LEVEL SECURITY;`);
-
-    // Create policies for authenticated users
-    await queryRunner.query(`
-      CREATE POLICY "Users can read own visitors"
-      ON visitors
-      FOR SELECT
-      TO authenticated
-      USING (auth.uid() = userId);
-    `);
-
-    await queryRunner.query(`
-      CREATE POLICY "Users can insert own visitors"
-      ON visitors
-      FOR INSERT
-      TO authenticated
-      WITH CHECK (auth.uid() = userId);
-    `);
-
-    await queryRunner.query(`
-      CREATE POLICY "Users can update own visitors"
-      ON visitors
-      FOR UPDATE
-      TO authenticated
-      USING (auth.uid() = userId);
-    `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // Dropping the table will automatically drop the policies.
+    // Dropping the table will remove the associated RLS settings
     await queryRunner.query(`DROP TABLE IF EXISTS visitors;`);
   }
 }

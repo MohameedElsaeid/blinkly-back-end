@@ -109,6 +109,7 @@ async function bootstrap(): Promise<void> {
       'CF-IPLatitude',
       'CF-IPLongitude',
       'CF-IPTimeZone',
+      'x-forward-cloudflare-headers',
     ],
     exposedHeaders: ['x-csrf-token'],
     credentials: true,

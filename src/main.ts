@@ -82,7 +82,7 @@ async function bootstrap(): Promise<void> {
     cookieName: '__Host-psifi.x-csrf-token',
     cookieOptions: {
       secure: isProd,
-      sameSite: isProd ? 'strict' : 'lax',
+      sameSite: isProd ? 'none' : 'lax',
       httpOnly: true,
       path: '/',
       maxAge: 60 * 60 * 24,

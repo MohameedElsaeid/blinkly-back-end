@@ -71,7 +71,7 @@ async function bootstrap(): Promise<void> {
       // 'Sec-Fetch-Mode',
       // 'Sec-Fetch-Dest',
       // 'Referer',
-      // 'Origin',
+      'Cookie',
     ],
     exposedHeaders: [
       'x-csrf-token',

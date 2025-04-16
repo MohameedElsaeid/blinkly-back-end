@@ -163,31 +163,6 @@ async function bootstrap(): Promise<void> {
 
   app.use(cookieParser());
 
-  const { doubleCsrfProtection, generateToken } = doubleCsrf({
-    getSecret: () =>
-      process.env.CSRF_SECRET || 'pI4JjN2LmnX9b7A3TzcM5qL8C2FdR3Gs',
-    cookieName: '__Host-psifi.x-csrf-token',
-    cookieOptions: {
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
-      httpOnly: true,
-      path: '/',
-      maxAge: 60 * 60 * 24,
-      domain: isProd ? '.blinkly.app' : undefined,
-    },
-    size: 64,
-    ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
-    getTokenFromRequest: (req) => {
-      // Check both headers and body for CSRF token
-      return (
-        req.headers['x-csrf-token'] ||
-        req.headers['x-xsrf-token'] ||
-        req.cookies['XSRF-TOKEN'] ||
-        req.body?.csrfToken
-      );
-    },
-  });
-
   if (isProd) {
     app.use(
       rateLimit({

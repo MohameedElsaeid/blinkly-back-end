@@ -194,6 +194,8 @@ async function bootstrap(): Promise<void> {
       'Sec-Ch-Ua',
       'Sec-Ch-Ua-Mobile',
       'Sec-Ch-Ua-Platform',
+      // Allow the x-requested-with header to fix the CORS issue
+      'x-requested-with',
       // Cloudflare Headers
       'CF-IPCountry',
       'CF-Ray',
@@ -226,12 +228,12 @@ async function bootstrap(): Promise<void> {
       'X-XSRF-TOKEN',
       'Device-ID',
       'Priority',
-      'Sec-CH-UA',
-      'Sec-Fetch-Site',
-      'Sec-Fetch-Mode',
-      'Sec-Fetch-Dest',
-      'Referer',
-      'Origin',
+      // 'Sec-CH-UA',
+      // 'Sec-Fetch-Site',
+      // 'Sec-Fetch-Mode',
+      // 'Sec-Fetch-Dest',
+      // 'Referer',
+      // 'Origin',
     ],
     exposedHeaders: [
       'x-csrf-token',

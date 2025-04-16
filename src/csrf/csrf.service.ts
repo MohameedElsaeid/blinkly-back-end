@@ -16,13 +16,12 @@ export class CsrfService {
           ? '__Host-psifi.x-csrf-token'
           : 'psifi.x-csrf-token',
       cookieOptions: {
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: true, // Must be true for production
+        sameSite: 'none', // Required for cross-origin requests
         httpOnly: true,
         path: '/',
         maxAge: 60 * 60 * 24,
-        domain:
-          process.env.NODE_ENV === 'production' ? '.blinkly.app' : undefined,
+        domain: undefined, // __Host- cookies MUST NOT specify a domain
       },
       size: 64,
       ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],

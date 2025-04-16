@@ -86,9 +86,7 @@ async function bootstrap(): Promise<void> {
       'Sec-Ch-Ua',
       'Sec-Ch-Ua-Mobile',
       'Sec-Ch-Ua-Platform',
-      // Allow the x-requested-with header to fix the CORS issue
       'x-requested-with',
-      // Cloudflare Headers
       'CF-IPCountry',
       'CF-Ray',
       'CF-Visitor',
@@ -103,7 +101,6 @@ async function bootstrap(): Promise<void> {
       'CF-IPLongitude',
       'CF-IPTimeZone',
       'x-forward-cloudflare-headers',
-      // Tracking headers from frontend
       'X-User-Agent',
       'X-Language',
       'X-Platform',
@@ -116,27 +113,21 @@ async function bootstrap(): Promise<void> {
       'X-Custom-Header',
       'X-FB-Browser-ID',
       'X-FB-Click-ID',
-      // Additional headers to match frontend
       'X-XSRF-TOKEN',
       'Device-ID',
       'Priority',
-      'x-csrf-token', // Add CSRF token header
-      'xsrf-token',
-      // 'Sec-CH-UA',
-      // 'Sec-Fetch-Site',
-      // 'Sec-Fetch-Mode',
-      // 'Sec-Fetch-Dest',
-      // 'Referer',
-      'Cookie',
+      'x-xsrf-token',
+      'x-csrf-token',
       'cookie',
     ],
     exposedHeaders: [
+      'set-cookie',
       'x-csrf-token',
       'set-cookie',
       'X-Request-ID',
       'X-Request-Time',
       'XSRF-TOKEN',
-      'set-cookie', // Allow client to read cookies
+      'set-cookie',
       'x-csrf-token',
       'cookie',
     ],

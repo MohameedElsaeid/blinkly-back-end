@@ -27,6 +27,7 @@ import { RedirectModule } from './redirect/redirect.service';
 import { CsrfController } from './csrf/csrf.controller';
 import { VisitorModule } from './visitor/visitor.module';
 import { Visitor } from './entities/visitor.entity';
+import { CsrfModule } from './csrf/csrf.module';
 
 const redisStoreFactory: any = redisStore;
 
@@ -113,6 +114,7 @@ const redisStoreFactory: any = redisStore;
     PaymentsModule,
     RedirectModule,
     VisitorModule,
+    CsrfModule,
   ],
   controllers: [CsrfController],
   providers: [],

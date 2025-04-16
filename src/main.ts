@@ -188,53 +188,6 @@ async function bootstrap(): Promise<void> {
     },
   });
 
-  // Middleware to generate and set the CSRF token cookies & header for each request
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    const token = generateToken(req, res);
-
-    // Set both secure HTTP-only and readable cookies
-    res.cookie('__Host-psifi.x-csrf-token', token, {
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
-      httpOnly: true,
-      path: '/',
-      domain: isProd ? '.blinkly.app' : undefined,
-    });
-
-    res.cookie('XSRF-TOKEN', token, {
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
-      httpOnly: false, // So frontend can read it
-      path: '/',
-      domain: isProd ? '.blinkly.app' : undefined,
-    });
-
-    // Also set header for non-cookie clients
-    res.header('x-csrf-token', token);
-
-    next();
-  });
-
-  // Add CSRF protection middleware
-  app.use(doubleCsrfProtection);
-
-  // Error-handling middleware for CSRF errors
-  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    // Check if the error is related to CSRF token validation
-    if (
-      err &&
-      (err.code === 'EBADCSRFTOKEN' ||
-        (typeof err.message === 'string' &&
-          err.message.toLowerCase().includes('csrf')))
-    ) {
-      return res.status(403).json({
-        statusCode: 403,
-        message: 'invalid csrf token',
-      });
-    }
-    next(err);
-  });
-
   if (isProd) {
     app.use(
       rateLimit({
@@ -280,4 +233,4 @@ async function bootstrap(): Promise<void> {
   });
 }
 
-bootstrap();
+void bootstrap();

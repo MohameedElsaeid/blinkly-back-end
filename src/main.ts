@@ -12,6 +12,77 @@ async function bootstrap(): Promise<void> {
   const isProd = process.env.NODE_ENV === 'production';
 
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
+  app.enableCors({
+    origin: isProd
+      ? [
+          'https://blinkly.app',
+          'https://www.blinkly.app',
+          'https://api.blinkly.app',
+        ]
+      : true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-csrf-token',
+      'X-Request-ID',
+      'X-Request-Time',
+      'DNT',
+      'Sec-Ch-Ua',
+      'Sec-Ch-Ua-Mobile',
+      'Sec-Ch-Ua-Platform',
+      // Allow the x-requested-with header to fix the CORS issue
+      'x-requested-with',
+      // Cloudflare Headers
+      'CF-IPCountry',
+      'CF-Ray',
+      'CF-Visitor',
+      'CF-Device-Type',
+      'CF-Metro-Code',
+      'CF-Region',
+      'CF-Region-Code',
+      'CF-Connecting-IP',
+      'CF-IPCity',
+      'CF-IPContinent',
+      'CF-IPLatitude',
+      'CF-IPLongitude',
+      'CF-IPTimeZone',
+      'x-forward-cloudflare-headers',
+      // Tracking headers from frontend
+      'X-User-Agent',
+      'X-Language',
+      'X-Platform',
+      'X-Screen-Width',
+      'X-Screen-Height',
+      'X-Time-Zone',
+      'X-Color-Depth',
+      'X-Hardware-Concurrency',
+      'X-Device-Memory',
+      'X-Custom-Header',
+      'X-FB-Browser-ID',
+      'X-FB-Click-ID',
+      // Additional headers to match frontend
+      'X-XSRF-TOKEN',
+      'Device-ID',
+      'Priority',
+      // 'Sec-CH-UA',
+      // 'Sec-Fetch-Site',
+      // 'Sec-Fetch-Mode',
+      // 'Sec-Fetch-Dest',
+      // 'Referer',
+      // 'Origin',
+    ],
+    exposedHeaders: [
+      'x-csrf-token',
+      'set-cookie',
+      'X-Request-ID',
+      'X-Request-Time',
+    ],
+    credentials: true,
+    maxAge: 86400,
+  });
+
   const httpLogger = new Logger('HTTP');
   app.use((req: Request, res: Response, next: NextFunction) => {
     httpLogger.log(`Incoming Request: ${req.method} ${req.url}`);
@@ -174,76 +245,6 @@ async function bootstrap(): Promise<void> {
       }),
     );
   }
-
-  app.enableCors({
-    origin: isProd
-      ? [
-          'https://blinkly.app',
-          'https://www.blinkly.app',
-          'https://api.blinkly.app',
-        ]
-      : true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'x-csrf-token',
-      'X-Request-ID',
-      'X-Request-Time',
-      'DNT',
-      'Sec-Ch-Ua',
-      'Sec-Ch-Ua-Mobile',
-      'Sec-Ch-Ua-Platform',
-      // Allow the x-requested-with header to fix the CORS issue
-      'x-requested-with',
-      // Cloudflare Headers
-      'CF-IPCountry',
-      'CF-Ray',
-      'CF-Visitor',
-      'CF-Device-Type',
-      'CF-Metro-Code',
-      'CF-Region',
-      'CF-Region-Code',
-      'CF-Connecting-IP',
-      'CF-IPCity',
-      'CF-IPContinent',
-      'CF-IPLatitude',
-      'CF-IPLongitude',
-      'CF-IPTimeZone',
-      'x-forward-cloudflare-headers',
-      // Tracking headers from frontend
-      'X-User-Agent',
-      'X-Language',
-      'X-Platform',
-      'X-Screen-Width',
-      'X-Screen-Height',
-      'X-Time-Zone',
-      'X-Color-Depth',
-      'X-Hardware-Concurrency',
-      'X-Device-Memory',
-      'X-Custom-Header',
-      'X-FB-Browser-ID',
-      'X-FB-Click-ID',
-      // Additional headers to match frontend
-      'X-XSRF-TOKEN',
-      'Device-ID',
-      'Priority',
-      // 'Sec-CH-UA',
-      // 'Sec-Fetch-Site',
-      // 'Sec-Fetch-Mode',
-      // 'Sec-Fetch-Dest',
-      // 'Referer',
-      // 'Origin',
-    ],
-    exposedHeaders: [
-      'x-csrf-token',
-      'set-cookie',
-      'X-Request-ID',
-      'X-Request-Time',
-    ],
-    credentials: true,
-    maxAge: 86400,
-  });
 
   app.useGlobalPipes(
     new ValidationPipe({

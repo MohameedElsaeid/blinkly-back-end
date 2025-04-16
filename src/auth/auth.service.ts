@@ -22,6 +22,34 @@ import {
   SubscriptionStatus,
   UserSubscription,
 } from '../entities/user-subscription.entity';
+import { VisitorService } from '../visitor/visitor.service';
+
+interface HeaderData {
+  deviceId?: string;
+  userAgent?: string;
+  platform?: string;
+  screenWidth?: number;
+  screenHeight?: number;
+  colorDepth?: string;
+  deviceMemory?: string;
+  hardwareConcurrency?: string;
+  timeZone?: string;
+  acceptEncoding?: string;
+  acceptLanguage?: string;
+  origin?: string;
+  referer?: string;
+  secChUa?: string;
+  secChUaMobile?: string;
+  secChUaPlatform?: string;
+  secFetchDest?: string;
+  secFetchMode?: string;
+  secFetchSite?: string;
+  dnt?: string;
+  cfConnectingIp?: string;
+  cfCountry?: string;
+  cfRay?: string;
+  cfVisitor?: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -35,10 +63,13 @@ export class AuthService {
     @InjectRepository(UserSubscription)
     private readonly userSubscriptionRepository: Repository<UserSubscription>,
     private readonly jwtService: JwtService,
+    private readonly visitorService: VisitorService,
   ) {}
 
-  async signUp(signUpDto: SignUpDto): Promise<IAuthResponse> {
-    // Check for existing user by email or phone number
+  async signUp(
+    signUpDto: SignUpDto,
+    headerData: HeaderData,
+  ): Promise<IAuthResponse> {
     const existingUser = await this.userRepository.findOne({
       where: [
         { email: signUpDto.email },
@@ -53,34 +84,32 @@ export class AuthService {
       );
     }
 
-    // Create a new user from the DTO data
     const user = this.userRepository.create({
       ...signUpDto,
+      ipAddress: headerData.cfConnectingIp,
     });
+
     const savedUser = await this.userRepository.save(user);
 
-    // Retrieve the free plan from the plans table
     const freePlan = await this.planRepository.findOne({
       where: { name: PlanName.FREE },
     });
+
     if (freePlan) {
-      // Create a new subscription for the user using the free plan
       const subscription = new UserSubscription();
       subscription.user = savedUser;
       subscription.plan = freePlan;
       subscription.startDate = new Date();
 
-      // If a free trial is available, set the trial end date and mark status as TRIAL
       if (freePlan.freeTrialAvailable && freePlan.freeTrialDays) {
         const endDate = new Date();
         endDate.setDate(endDate.getDate() + freePlan.freeTrialDays);
         subscription.endDate = endDate;
         subscription.status = SubscriptionStatus.TRIAL;
       } else {
-        // Otherwise mark it as active immediately
         subscription.status = SubscriptionStatus.ACTIVE;
       }
-      // Optionally, update user's activeSubscription field
+
       savedUser.activeSubscription =
         await this.userSubscriptionRepository.save(subscription);
       await this.userRepository.save(savedUser);
@@ -88,10 +117,40 @@ export class AuthService {
       this.logger.warn('No free plan available to assign to new user');
     }
 
-    // Generate authentication token for the new user
     const token = this.jwtService.sign({
       sub: savedUser.id,
       email: savedUser.email,
+    });
+
+    await this.visitorService.trackVisitor(savedUser.id, {
+      ipAddress: headerData.cfConnectingIp || '',
+      userAgent: headerData.userAgent || '',
+      deviceId: headerData.deviceId,
+      headers: {
+        'accept-encoding': headerData.acceptEncoding,
+        'accept-language': headerData.acceptLanguage,
+        'cf-connecting-ip': headerData.cfConnectingIp,
+        'cf-country': headerData.cfCountry,
+        'cf-ray': headerData.cfRay,
+        'cf-visitor': headerData.cfVisitor,
+        dnt: headerData.dnt,
+        origin: headerData.origin,
+        referer: headerData.referer,
+        'sec-ch-ua': headerData.secChUa,
+        'sec-ch-ua-mobile': headerData.secChUaMobile,
+        'sec-ch-ua-platform': headerData.secChUaPlatform,
+        'sec-fetch-dest': headerData.secFetchDest,
+        'sec-fetch-mode': headerData.secFetchMode,
+        'sec-fetch-site': headerData.secFetchSite,
+        'user-agent': headerData.userAgent,
+        'x-color-depth': headerData.colorDepth,
+        'x-device-memory': headerData.deviceMemory,
+        'x-hardware-concurrency': headerData.hardwareConcurrency,
+        'x-platform': headerData.platform,
+        'x-screen-height': String(headerData.screenHeight),
+        'x-screen-width': String(headerData.screenWidth),
+        'x-time-zone': headerData.timeZone,
+      } as Record<string, string>,
     });
 
     this.logger.log(`User registered successfully: ${savedUser.email}`);
@@ -116,9 +175,6 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-
-    console.log('Raw Password (Login):', loginDto.password);
-    console.log('Stored Hash (Login):', user.password);
 
     const isMatch: boolean = await user.validatePassword(loginDto.password);
 

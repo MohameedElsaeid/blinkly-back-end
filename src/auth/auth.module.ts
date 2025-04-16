@@ -10,17 +10,18 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserSubscription } from '../entities/user-subscription.entity';
 import { Plan } from '../entities/plan.entity';
+import { VisitorModule } from '../visitor/visitor.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Plan, UserSubscription]),
     PassportModule,
     ConfigModule,
+    VisitorModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        // Make sure both signing and verification use the same secret.
         secret:
           configService.get<string>('JWT_SECRET') ||
           'pI4JjN2LmnX9b7A3TzcM5qL8C2FdR3Gh',

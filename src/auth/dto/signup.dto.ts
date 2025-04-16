@@ -8,11 +8,32 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
 import { Match } from '../decorators/match.decorator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class SignUpDto {
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'Email must be a valid email address.',
+  })
+  @IsNotEmpty({ message: 'Email is required' })
+  @IsEmail(
+    {
+      allow_display_name: false,
+      require_tld: true,
+      allow_utf8_local_part: false,
+      allow_ip_domain: false,
+    },
+    {
+      message: 'Email must be a valid email address',
+    },
+  )
+  @MaxLength(255, { message: 'Email must not exceed 255 characters' })
+  @Matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, {
+    message: 'Email format is invalid',
+  })
+  email: string;
+
   @ApiProperty({
     example: 'Secret@123',
     description:
@@ -29,7 +50,6 @@ export class SignUpDto {
         'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
     },
   )
-  @Transform(({ value }) => value.trim())
   password: string;
 
   @ApiProperty({
@@ -40,7 +60,6 @@ export class SignUpDto {
   @Match('password', {
     message: 'Password confirmation does not match password',
   })
-  @Transform(({ value }) => value.trim())
   passwordConfirmation: string;
 
   @ApiProperty({
@@ -103,26 +122,4 @@ export class SignUpDto {
     message: 'Country must be a valid ISO 3166-1 alpha-2 code',
   })
   country: string;
-
-  @ApiProperty({
-    example: 'john.doe@example.com',
-    description: 'Email must be a valid email address.',
-  })
-  @IsNotEmpty({ message: 'Email is required' })
-  @IsEmail(
-    {
-      allow_display_name: false,
-      require_tld: true,
-      allow_utf8_local_part: false,
-      allow_ip_domain: false,
-    },
-    {
-      message: 'Email must be a valid email address',
-    },
-  )
-  @MaxLength(255, { message: 'Email must not exceed 255 characters' })
-  @Matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, {
-    message: 'Email format is invalid',
-  })
-  email: string;
 }

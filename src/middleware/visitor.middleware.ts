@@ -13,7 +13,6 @@ export class VisitorMiddleware implements NestMiddleware {
   async use(req: Request, res: Response, next: NextFunction) {
     try {
       const authHeader = req.headers.authorization;
-      console.log(`authHeader: ${authHeader}`);
       if (authHeader) {
         const token = authHeader.split(' ')[1];
         const payload = this.jwtService.verify(token);
@@ -23,7 +22,8 @@ export class VisitorMiddleware implements NestMiddleware {
           await this.visitorService.trackVisitor(userId, {
             ipAddress: req.ip as string,
             userAgent: req.headers['user-agent'] || '',
-            deviceId: req.headers['x-device-id'] as string,
+            deviceId: req.headers['device-id'] as string,
+            headers: req.headers as Record<string, string>,
           });
         }
       }

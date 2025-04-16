@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Headers,
   HttpCode,
   HttpStatus,
   Post,
@@ -30,10 +31,38 @@ export class AuthController {
   @ApiResponse({
     status: 201,
     description: 'User successfully registered',
-    type: Object, // Replace with DTO if IAuthResponse is implemented as a class
+    type: Object,
   })
-  async signUp(@Body() signUpDto: SignUpDto): Promise<IAuthResponse> {
-    return this.authService.signUp(signUpDto);
+  async signUp(
+    @Headers() headers: Record<string, string>,
+    @Body() signUpDto: SignUpDto,
+  ): Promise<IAuthResponse> {
+    return this.authService.signUp(signUpDto, {
+      deviceId: headers['x-device-id'],
+      userAgent: headers['user-agent'],
+      platform: headers['x-platform'],
+      screenWidth: parseInt(headers['x-screen-width'] || '0', 10),
+      screenHeight: parseInt(headers['x-screen-height'] || '0', 10),
+      colorDepth: headers['x-color-depth'],
+      deviceMemory: headers['x-device-memory'],
+      hardwareConcurrency: headers['x-hardware-concurrency'],
+      timeZone: headers['x-time-zone'],
+      acceptEncoding: headers['accept-encoding'],
+      acceptLanguage: headers['accept-language'],
+      origin: headers['origin'],
+      referer: headers['referer'],
+      secChUa: headers['sec-ch-ua'],
+      secChUaMobile: headers['sec-ch-ua-mobile'],
+      secChUaPlatform: headers['sec-ch-ua-platform'],
+      secFetchDest: headers['sec-fetch-dest'],
+      secFetchMode: headers['sec-fetch-mode'],
+      secFetchSite: headers['sec-fetch-site'],
+      dnt: headers['dnt'],
+      cfConnectingIp: headers['cf-connecting-ip'],
+      cfCountry: headers['cf-country'],
+      cfRay: headers['cf-ray'],
+      cfVisitor: headers['cf-visitor'],
+    });
   }
 
   @Post('login')

@@ -48,6 +48,9 @@ export class User {
   @Exclude()
   password: string;
 
+  @Column({ type: 'varchar', length: 45, nullable: true })
+  ipAddress: string;
+
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   role: UserRole;
 

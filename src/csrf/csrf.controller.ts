@@ -6,9 +6,17 @@ import { Response } from 'express';
 export class CsrfController {
   @Get('csrf-token')
   getCsrfToken(@Res() res: Response) {
+    const token: string = res.locals.csrfToken;
+    const expiresAt: Date = new Date(Date.now() + 86400000);
+    res.cookie('XSRF-TOKEN', token, {
+      secure: true,
+      sameSite: 'none',
+      httpOnly: false,
+      expires: expiresAt,
+    });
     res.json({
-      token: res.locals.csrfToken,
-      expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      token,
+      expiresAt,
     });
   }
 }

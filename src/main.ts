@@ -18,7 +18,7 @@ async function bootstrap(): Promise<void> {
     // Log headers in a pretty format
     httpLogger.debug(`Headers:\n${JSON.stringify(req.headers, null, 2)}`);
     // Log body only if available; can be empty for GET requests
-    httpLogger.debug(`Body:\n${JSON.stringify(req.body, null, 2)}`);
+    httpLogger.debug(`Params:\n${JSON.stringify(req.params, null, 2)}`);
     next();
   });
 

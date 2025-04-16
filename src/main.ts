@@ -89,19 +89,39 @@ async function bootstrap(): Promise<void> {
     },
     size: 64,
     ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+    getTokenFromRequest: (req) => {
+      // Check both headers and body for CSRF token
+      return (
+        req.headers['x-csrf-token'] ||
+        req.headers['x-xsrf-token'] ||
+        req.body?.csrfToken
+      );
+    },
   });
 
-  // Add this middleware before doubleCsrfProtection
+  // Add this before CSRF protection
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // Generate and set CSRF token for all requests
+    // Generate token for all requests
     const token = generateToken(req, res);
+
+    // Set both secure HTTP-only and readable cookies
+    res.cookie('__Host-psifi.x-csrf-token', token, {
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      httpOnly: true,
+      path: '/',
+    });
+
     res.cookie('XSRF-TOKEN', token, {
       secure: isProd,
       sameSite: isProd ? 'none' : 'lax',
-      httpOnly: false,
+      httpOnly: false, // So frontend can read it
       path: '/',
     });
-    res.locals.csrfToken = token;
+
+    // Also set header for non-cookie clients
+    res.header('x-csrf-token', token);
+
     next();
   });
 
@@ -119,7 +139,13 @@ async function bootstrap(): Promise<void> {
   }
 
   app.enableCors({
-    origin: isProd ? ['https://blinkly.app', 'https://www.blinkly.app'] : true,
+    origin: isProd
+      ? [
+          'https://blinkly.app',
+          'https://www.blinkly.app',
+          'https://api.blinkly.app',
+        ]
+      : true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type',

@@ -22,6 +22,23 @@ async function bootstrap(): Promise<void> {
     next();
   });
 
+  // Add this before CSRF middleware
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    // Trust Cloudflare headers
+    req.headers['cf-connecting-ip'] =
+      req.headers['cf-connecting-ip'] ||
+      req.headers['x-forwarded-for'] ||
+      req.ip;
+
+    // Log all incoming CF headers for debugging
+    const cfHeaders = Object.entries(req.headers).filter(([key]) =>
+      key.toLowerCase().startsWith('cf-'),
+    );
+    httpLogger.debug(`Cloudflare Headers: ${JSON.stringify(cfHeaders)}`);
+
+    next();
+  });
+
   app.use(
     helmet({
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
@@ -86,6 +103,7 @@ async function bootstrap(): Promise<void> {
       httpOnly: true,
       path: '/',
       maxAge: 60 * 60 * 24,
+      domain: isProd ? '.blinkly.app' : undefined,
     },
     size: 64,
     ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
@@ -94,6 +112,7 @@ async function bootstrap(): Promise<void> {
       return (
         req.headers['x-csrf-token'] ||
         req.headers['x-xsrf-token'] ||
+        req.cookies['XSRF-TOKEN'] ||
         req.body?.csrfToken
       );
     },
@@ -110,6 +129,7 @@ async function bootstrap(): Promise<void> {
       sameSite: isProd ? 'none' : 'lax',
       httpOnly: true,
       path: '/',
+      domain: isProd ? '.blinkly.app' : undefined,
     });
 
     res.cookie('XSRF-TOKEN', token, {
@@ -117,6 +137,7 @@ async function bootstrap(): Promise<void> {
       sameSite: isProd ? 'none' : 'lax',
       httpOnly: false, // So frontend can read it
       path: '/',
+      domain: isProd ? '.blinkly.app' : undefined,
     });
 
     // Also set header for non-cookie clients

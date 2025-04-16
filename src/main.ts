@@ -17,20 +17,19 @@ async function bootstrap(): Promise<void> {
     httpLogger.log(`Incoming Request: ${req.method} ${req.url}`);
     // Log headers in a pretty format
     httpLogger.debug(`Headers:\n${JSON.stringify(req.headers, null, 2)}`);
-    // Log body only if available; can be empty for GET requests
+    // Log params only if available
     httpLogger.debug(`Params:\n${JSON.stringify(req.params, null, 2)}`);
     next();
   });
 
-  // Add this before CSRF middleware
+  // Middleware to trust Cloudflare headers
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // Trust Cloudflare headers
     req.headers['cf-connecting-ip'] =
       req.headers['cf-connecting-ip'] ||
       req.headers['x-forwarded-for'] ||
       req.ip;
 
-    // Log all incoming CF headers for debugging
+    // Log all incoming Cloudflare headers for debugging
     const cfHeaders = Object.entries(req.headers).filter(([key]) =>
       key.toLowerCase().startsWith('cf-'),
     );
@@ -118,9 +117,8 @@ async function bootstrap(): Promise<void> {
     },
   });
 
-  // Add this before CSRF protection
+  // Middleware to generate and set the CSRF token cookies & header for each request
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // Generate token for all requests
     const token = generateToken(req, res);
 
     // Set both secure HTTP-only and readable cookies
@@ -146,7 +144,25 @@ async function bootstrap(): Promise<void> {
     next();
   });
 
+  // Add CSRF protection middleware
   app.use(doubleCsrfProtection);
+
+  // Error-handling middleware for CSRF errors
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    // Check if the error is related to CSRF token validation
+    if (
+      err &&
+      (err.code === 'EBADCSRFTOKEN' ||
+        (typeof err.message === 'string' &&
+          err.message.toLowerCase().includes('csrf')))
+    ) {
+      return res.status(403).json({
+        statusCode: 403,
+        message: 'invalid csrf token',
+      });
+    }
+    next(err);
+  });
 
   if (isProd) {
     app.use(
@@ -206,7 +222,7 @@ async function bootstrap(): Promise<void> {
       'X-Custom-Header',
       'X-FB-Browser-ID',
       'X-FB-Click-ID',
-      // Add these to match frontend
+      // Additional headers to match frontend
       'X-XSRF-TOKEN',
       'Device-ID',
       'Priority',

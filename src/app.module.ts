@@ -115,9 +115,9 @@ const redisStoreFactory: any = redisStore;
     PaymentsModule,
     RedirectModule,
     VisitorModule,
-    CsrfModule,
+    // CsrfModule,
   ],
-  controllers: [CsrfController],
+  controllers: [],
   providers: [],
 })
 export class AppModule {}

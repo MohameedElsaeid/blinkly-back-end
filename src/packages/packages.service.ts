@@ -41,84 +41,215 @@ export class PackagesService {
   }
 
   private async seedPlans() {
-    const count = await this.planRepository.count();
-    if (count > 0) {
-      return;
-    }
-
-    const plans = [
+    // Define monthly plans with updated pricing and features
+    const monthlyPlans = [
       {
         name: PlanName.FREE,
         billingFrequency: BillingFrequency.MONTHLY,
         price: 0,
-        description: 'Perfect for personal use',
+        description: 'Basic link shortening for personal use',
         features: [
-          'Up to 10 short links per month',
-          'Basic click tracking',
-          'Standard support',
+          '10 shortened links/month',
+          '2 QR codes/month',
+          'Community support',
         ].join('\n'),
         shortenedLinksLimit: 10,
-        qrCodesLimit: 5,
+        qrCodesLimit: 2,
         freeTrialAvailable: false,
         isMostPopular: false,
       },
       {
         name: PlanName.BASIC,
         billingFrequency: BillingFrequency.MONTHLY,
-        price: 999, // $9.99
-        description: 'Great for professionals',
+        price: 900, // $9/mo
+        description: 'For creators and small businesses',
         features: [
-          'Up to 100 short links per month',
-          'Basic analytics',
-          'Custom QR codes',
-          'Priority support',
+          '500 shortened links/month',
+          '50 QR codes/month',
+          'Advanced analytics',
+          'Password-protected links',
+          'Email support',
         ].join('\n'),
-        shortenedLinksLimit: 100,
+        shortenedLinksLimit: 500,
         qrCodesLimit: 50,
         freeTrialAvailable: true,
-        freeTrialDays: 14,
-        isMostPopular: true,
+        freeTrialDays: 7,
+        isMostPopular: false,
       },
       {
         name: PlanName.PROFESSIONAL,
         billingFrequency: BillingFrequency.MONTHLY,
-        price: 2999, // $29.99
-        description: 'Perfect for growing businesses',
+        price: 2900, // $29/mo
+        description: 'Advanced features for teams',
         features: [
-          'Up to 1000 short links per month',
+          '5000 shortened links/month',
+          '500 QR codes/month',
           'Advanced analytics',
+          'Password-protected links',
           'Custom domains',
-          'API access',
-          'Premium support',
+          'Team access (Up to 5)',
+          'Priority email support',
         ].join('\n'),
-        shortenedLinksLimit: 1000,
+        shortenedLinksLimit: 5000,
         qrCodesLimit: 500,
         freeTrialAvailable: true,
-        freeTrialDays: 14,
-        isMostPopular: false,
+        freeTrialDays: 7,
+        isMostPopular: true,
       },
       {
         name: PlanName.BUSINESS,
         billingFrequency: BillingFrequency.MONTHLY,
-        price: 9999, // $99.99
-        description: 'For large organizations',
+        price: 7900, // $79/mo
+        description: 'Complete solution for organizations',
         features: [
-          'Unlimited short links',
-          'Enterprise analytics',
-          'Multiple custom domains',
-          'Advanced API access',
-          'Dedicated support',
-          'SLA guarantee',
+          '20000 shortened links/month',
+          '2000 QR codes/month',
+          'Advanced analytics',
+          'Password-protected links',
+          'Custom domains',
+          'Team access (Up to 20)',
+          'Priority + Live Chat support',
+        ].join('\n'),
+        shortenedLinksLimit: 20000,
+        qrCodesLimit: 2000,
+        freeTrialAvailable: true,
+        freeTrialDays: 7,
+        isMostPopular: false,
+      },
+      {
+        name: PlanName.ENTERPRISE,
+        billingFrequency: BillingFrequency.MONTHLY,
+        price: null,
+        description: 'Tailored solutions for large enterprises',
+        features: [
+          'Unlimited shortened links/month',
+          'Unlimited QR codes/month',
+          'Advanced analytics',
+          'Password-protected links',
+          'Custom domains',
+          'Team access (Unlimited)',
+          '24/7 Dedicated support',
         ].join('\n'),
         shortenedLinksLimit: null,
         qrCodesLimit: null,
-        freeTrialAvailable: true,
-        freeTrialDays: 30,
+        freeTrialAvailable: false,
         isMostPopular: false,
       },
     ];
 
-    await this.planRepository.save(plans);
-    this.logger.log('Plans seeded successfully');
+    // Define yearly plans with updated annual pricing (save ~15%)
+    const yearlyPlans = [
+      {
+        name: PlanName.FREE,
+        billingFrequency: BillingFrequency.YEARLY,
+        price: 0,
+        description: 'Basic link shortening for personal use',
+        features: [
+          '10 shortened links/month',
+          '2 QR codes/month',
+          'Community support',
+        ].join('\n'),
+        shortenedLinksLimit: 10,
+        qrCodesLimit: 2,
+        freeTrialAvailable: false,
+        isMostPopular: false,
+      },
+      {
+        name: PlanName.BASIC,
+        billingFrequency: BillingFrequency.YEARLY,
+        price: 9000, // $90/yr
+        description: 'For creators and small businesses',
+        features: [
+          '500 shortened links/month',
+          '50 QR codes/month',
+          'Advanced analytics',
+          'Password-protected links',
+          'Email support',
+        ].join('\n'),
+        shortenedLinksLimit: 500,
+        qrCodesLimit: 50,
+        freeTrialAvailable: true,
+        freeTrialDays: 7,
+        isMostPopular: false,
+      },
+      {
+        name: PlanName.PROFESSIONAL,
+        billingFrequency: BillingFrequency.YEARLY,
+        price: 29000, // $290/yr
+        description: 'Advanced features for teams',
+        features: [
+          '5000 shortened links/month',
+          '500 QR codes/month',
+          'Advanced analytics',
+          'Password-protected links',
+          'Custom domains',
+          'Team access (Up to 5)',
+          'Priority email support',
+        ].join('\n'),
+        shortenedLinksLimit: 5000,
+        qrCodesLimit: 500,
+        freeTrialAvailable: true,
+        freeTrialDays: 7,
+        isMostPopular: true,
+      },
+      {
+        name: PlanName.BUSINESS,
+        billingFrequency: BillingFrequency.YEARLY,
+        price: 79000, // $790/yr
+        description: 'Complete solution for organizations',
+        features: [
+          '20000 shortened links/month',
+          '2000 QR codes/month',
+          'Advanced analytics',
+          'Password-protected links',
+          'Custom domains',
+          'Team access (Up to 20)',
+          'Priority + Live Chat support',
+        ].join('\n'),
+        shortenedLinksLimit: 20000,
+        qrCodesLimit: 2000,
+        freeTrialAvailable: true,
+        freeTrialDays: 7,
+        isMostPopular: false,
+      },
+      {
+        name: PlanName.ENTERPRISE,
+        billingFrequency: BillingFrequency.YEARLY,
+        price: null,
+        description: 'Tailored solutions for large enterprises',
+        features: [
+          'Unlimited shortened links/month',
+          'Unlimited QR codes/month',
+          'Advanced analytics',
+          'Password-protected links',
+          'Custom domains',
+          'Team access (Unlimited)',
+          '24/7 Dedicated support',
+        ].join('\n'),
+        shortenedLinksLimit: null,
+        qrCodesLimit: null,
+        freeTrialAvailable: false,
+        isMostPopular: false,
+      },
+    ];
+
+    const allPlans = [...monthlyPlans, ...yearlyPlans];
+
+    // Upsert plans: if a plan with the same name and billingFrequency exists, update it; otherwise, create it.
+    for (const planData of allPlans) {
+      const existingPlan = await this.planRepository.findOne({
+        where: {
+          name: planData.name,
+          billingFrequency: planData.billingFrequency,
+        },
+      });
+      if (existingPlan) {
+        this.planRepository.merge(existingPlan, planData);
+        await this.planRepository.save(existingPlan);
+      } else {
+        await this.planRepository.save(planData);
+      }
+    }
+    this.logger.log('Plans seeded/updated successfully');
   }
 }

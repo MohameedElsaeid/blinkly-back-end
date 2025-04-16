@@ -1,10 +1,10 @@
+//main.ts
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
-import { doubleCsrf } from 'csrf-csrf';
 import { NextFunction, Request, Response } from 'express';
 
 async function bootstrap(): Promise<void> {
@@ -12,6 +12,60 @@ async function bootstrap(): Promise<void> {
   const isProd = process.env.NODE_ENV === 'production';
 
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
+  app.use(cookieParser());
+
+  app.use(
+    helmet({
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      contentSecurityPolicy: isProd
+        ? {
+            directives: {
+              defaultSrc: ["'self'", 'https:'],
+              scriptSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                "'unsafe-eval'",
+                'https://www.googletagmanager.com',
+                'https://www.google-analytics.com',
+                'https://connect.facebook.net',
+                'https://analytics.google.com',
+                'https://cdn.gpteng.co',
+                'https:',
+              ],
+              connectSrc: ["'self'", 'https:', 'wss:'],
+              imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+              styleSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                'https://fonts.googleapis.com',
+                'https:',
+              ],
+              fontSrc: [
+                "'self'",
+                'https://fonts.gstatic.com',
+                'data:',
+                'https:',
+              ],
+              frameSrc: ["'self'", 'https:'],
+              objectSrc: ["'none'"],
+              formAction: ["'self'"],
+              upgradeInsecureRequests: isProd ? [] : null,
+            },
+          }
+        : false,
+      hsts: isProd
+        ? {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: true,
+          }
+        : false,
+      frameguard: { action: 'deny' },
+      noSniff: true,
+      hidePoweredBy: true,
+    }),
+  );
 
   app.enableCors({
     origin: isProd
@@ -66,18 +120,25 @@ async function bootstrap(): Promise<void> {
       'X-XSRF-TOKEN',
       'Device-ID',
       'Priority',
+      'x-csrf-token', // Add CSRF token header
+      'xsrf-token',
       // 'Sec-CH-UA',
       // 'Sec-Fetch-Site',
       // 'Sec-Fetch-Mode',
       // 'Sec-Fetch-Dest',
       // 'Referer',
       'Cookie',
+      'cookie',
     ],
     exposedHeaders: [
       'x-csrf-token',
       'set-cookie',
       'X-Request-ID',
       'X-Request-Time',
+      'XSRF-TOKEN',
+      'set-cookie', // Allow client to read cookies
+      'x-csrf-token',
+      'cookie',
     ],
     credentials: true,
     maxAge: 86400,
@@ -108,60 +169,6 @@ async function bootstrap(): Promise<void> {
 
     next();
   });
-
-  app.use(
-    helmet({
-      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-      contentSecurityPolicy: isProd
-        ? {
-            directives: {
-              defaultSrc: ["'self'", 'https:'],
-              scriptSrc: [
-                "'self'",
-                "'unsafe-inline'",
-                "'unsafe-eval'",
-                'https://www.googletagmanager.com',
-                'https://www.google-analytics.com',
-                'https://connect.facebook.net',
-                'https://analytics.google.com',
-                'https://cdn.gpteng.co',
-                'https:',
-              ],
-              connectSrc: ["'self'", 'https:', 'wss:'],
-              imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
-              styleSrc: [
-                "'self'",
-                "'unsafe-inline'",
-                'https://fonts.googleapis.com',
-                'https:',
-              ],
-              fontSrc: [
-                "'self'",
-                'https://fonts.gstatic.com',
-                'data:',
-                'https:',
-              ],
-              frameSrc: ["'self'", 'https:'],
-              objectSrc: ["'none'"],
-              formAction: ["'self'"],
-              upgradeInsecureRequests: isProd ? [] : null,
-            },
-          }
-        : false,
-      hsts: isProd
-        ? {
-            maxAge: 31536000,
-            includeSubDomains: true,
-            preload: true,
-          }
-        : false,
-      frameguard: { action: 'deny' },
-      noSniff: true,
-      hidePoweredBy: true,
-    }),
-  );
-
-  app.use(cookieParser());
 
   if (isProd) {
     app.use(

@@ -148,6 +148,8 @@ async function bootstrap(): Promise<void> {
       'X-Hardware-Concurrency',
       'X-Device-Memory',
       'X-Custom-Header',
+      'X-FB-Browser-ID',
+      'X-FB-Click-ID',
     ],
     exposedHeaders: ['x-csrf-token'],
     credentials: true,

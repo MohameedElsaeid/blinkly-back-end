@@ -91,8 +91,17 @@ async function bootstrap(): Promise<void> {
     ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
   });
 
+  // Add this middleware before doubleCsrfProtection
   app.use((req: Request, res: Response, next: NextFunction) => {
-    res.locals.csrfToken = generateToken(req, res);
+    // Generate and set CSRF token for all requests
+    const token = generateToken(req, res);
+    res.cookie('XSRF-TOKEN', token, {
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      httpOnly: false,
+      path: '/',
+    });
+    res.locals.csrfToken = token;
     next();
   });
 
@@ -150,8 +159,23 @@ async function bootstrap(): Promise<void> {
       'X-Custom-Header',
       'X-FB-Browser-ID',
       'X-FB-Click-ID',
+      // Add these to match frontend
+      'X-XSRF-TOKEN',
+      'Device-ID',
+      'Priority',
+      'Sec-CH-UA',
+      'Sec-Fetch-Site',
+      'Sec-Fetch-Mode',
+      'Sec-Fetch-Dest',
+      'Referer',
+      'Origin',
     ],
-    exposedHeaders: ['x-csrf-token'],
+    exposedHeaders: [
+      'x-csrf-token',
+      'set-cookie',
+      'X-Request-ID',
+      'X-Request-Time',
+    ],
     credentials: true,
     maxAge: 86400,
   });

@@ -3,6 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BillingFrequency, Plan, PlanName } from '../entities/plan.entity';
 
+type PublicPlan = {
+  id: string;
+  name: string;
+  features: string[];
+  price: string | null;
+  billingFrequency: string;
+  isMostPopular: boolean;
+};
+
 @Injectable()
 export class PackagesService {
   private readonly logger = new Logger(PackagesService.name);
@@ -16,12 +25,44 @@ export class PackagesService {
     });
   }
 
-  async getAllPackages() {
-    return this.planRepository.find({
-      order: {
-        price: 'ASC',
-      },
+  async getAllPackages(): Promise<Record<string, PublicPlan[]>> {
+    const plans = await this.planRepository.find({
+      order: { price: 'ASC' },
     });
+
+    // 1. transform each Plan into the shape you want
+    const formatted: PublicPlan[] = plans.map((plan) => {
+      const features = plan.features
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => !!line);
+
+      const price =
+        plan.price !== null
+          ? new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: 'USD',
+            }).format(plan.price / 100)
+          : null;
+
+      return {
+        id: plan.id,
+        name: plan.name,
+        features,
+        price,
+        billingFrequency: plan.billingFrequency,
+        isMostPopular: plan.isMostPopular,
+      };
+    });
+
+    // 2. group by billingFrequency
+    return formatted.reduce(
+      (groups, pkg) => {
+        (groups[pkg.billingFrequency] ||= []).push(pkg);
+        return groups;
+      },
+      {} as Record<string, PublicPlan[]>,
+    );
   }
 
   async getPackageFeatures() {

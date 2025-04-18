@@ -4,7 +4,7 @@ export class AddIpAddressToUsers1744673749860 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       ALTER TABLE users
-      ADD COLUMN ip_address varchar(45);
+      ADD COLUMN ipAddress varchar(45);
     `);
   }
 

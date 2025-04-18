@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -148,6 +149,10 @@ export class Visitor {
   @Column({ type: 'timestamp', nullable: true })
   lastVisit: Date;
 
+  @Column({ nullable: true })
+  userId: string;
+
+  @JoinColumn({ name: 'userId' })
   @ManyToOne(() => User, (user) => user.visitors)
   user: User;
 

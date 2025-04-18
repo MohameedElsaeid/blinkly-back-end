@@ -1,12 +1,12 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User } from '../entities/user.entity';
@@ -23,6 +23,7 @@ import {
   UserSubscription,
 } from '../entities/user-subscription.entity';
 import { VisitorService } from '../visitor/visitor.service';
+import { Visitor } from '../entities/visitor.entity';
 
 interface HeaderData {
   deviceId?: string;
@@ -56,6 +57,7 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
+    @InjectEntityManager() private readonly manager: EntityManager,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(Plan)
@@ -70,101 +72,123 @@ export class AuthService {
     signUpDto: SignUpDto,
     headerData: HeaderData,
   ): Promise<IAuthResponse> {
-    const existingUser = await this.userRepository.findOne({
-      where: [
-        { email: signUpDto.email },
-        { phoneNumber: signUpDto.phoneNumber },
-      ],
-    });
+    return this.manager.transaction(async (transactionalEntityManager) => {
+      try {
+        // Check existing user
+        const existingUser = await transactionalEntityManager
+          .getRepository(User)
+          .findOne({
+            where: [
+              { email: signUpDto.email },
+              { phoneNumber: signUpDto.phoneNumber },
+            ],
+          });
 
-    if (existingUser) {
-      this.logger.log('User with this email or phone number already exists');
-      throw new BadRequestException(
-        'User with this email or phone number already exists',
-      );
-    }
+        if (existingUser) {
+          this.logger.log('User already exists');
+          throw new BadRequestException('User already exists');
+        }
 
-    const user = this.userRepository.create({
-      ...signUpDto,
-      ipAddress: headerData.cfConnectingIp,
-    });
+        // Create user
+        const user = transactionalEntityManager.getRepository(User).create({
+          ...signUpDto,
+          ipAddress: headerData.cfConnectingIp,
+        });
 
-    const savedUser = await this.userRepository.save(user);
+        const savedUser = await transactionalEntityManager
+          .getRepository(User)
+          .save(user);
 
-    const freePlan = await this.planRepository.findOne({
-      where: { name: PlanName.FREE },
-    });
+        // Handle subscription
+        const freePlan = await transactionalEntityManager
+          .getRepository(Plan)
+          .findOne({
+            where: { name: PlanName.FREE },
+            cache: true,
+          });
 
-    if (freePlan) {
-      const subscription = new UserSubscription();
-      subscription.user = savedUser;
-      subscription.plan = freePlan;
-      subscription.startDate = new Date();
+        if (!freePlan) {
+          this.logger.error('Free plan not found');
+          throw new InternalServerErrorException('System configuration error');
+        }
 
-      if (freePlan.freeTrialAvailable && freePlan.freeTrialDays) {
-        const endDate = new Date();
-        endDate.setDate(endDate.getDate() + freePlan.freeTrialDays);
-        subscription.endDate = endDate;
-        subscription.status = SubscriptionStatus.TRIAL;
-      } else {
-        subscription.status = SubscriptionStatus.ACTIVE;
+        const subscription = transactionalEntityManager
+          .getRepository(UserSubscription)
+          .create({
+            user: savedUser,
+            plan: freePlan,
+            startDate: new Date(),
+            status: freePlan.freeTrialAvailable
+              ? SubscriptionStatus.TRIAL
+              : SubscriptionStatus.ACTIVE,
+            endDate:
+              freePlan.freeTrialAvailable && freePlan.freeTrialDays
+                ? new Date(Date.now() + freePlan.freeTrialDays * 86400000)
+                : null,
+          });
+
+        // Update user with subscription
+        savedUser.activeSubscription = await transactionalEntityManager
+          .getRepository(UserSubscription)
+          .save(subscription);
+        await transactionalEntityManager.getRepository(User).save(savedUser);
+
+        // Track visitor
+        await transactionalEntityManager.getRepository(Visitor).save({
+          userId: savedUser.id,
+          ipAddress: headerData.cfConnectingIp || '',
+          userAgent: headerData.userAgent || '',
+          deviceId: headerData.deviceId,
+          headers: {
+            'accept-encoding': headerData.acceptEncoding,
+            'accept-language': headerData.acceptLanguage,
+            'cf-connecting-ip': headerData.cfConnectingIp,
+            'cf-country': headerData.cfCountry,
+            'cf-ray': headerData.cfRay,
+            'cf-visitor': headerData.cfVisitor,
+            dnt: headerData.dnt,
+            origin: headerData.origin,
+            referer: headerData.referer,
+            'sec-ch-ua': headerData.secChUa,
+            'sec-ch-ua-mobile': headerData.secChUaMobile,
+            'sec-ch-ua-platform': headerData.secChUaPlatform,
+            'sec-fetch-dest': headerData.secFetchDest,
+            'sec-fetch-mode': headerData.secFetchMode,
+            'sec-fetch-site': headerData.secFetchSite,
+            'user-agent': headerData.userAgent,
+            'x-color-depth': headerData.colorDepth,
+            'x-device-memory': headerData.deviceMemory,
+            'x-hardware-concurrency': headerData.hardwareConcurrency,
+            'x-platform': headerData.platform,
+            'x-screen-height': String(headerData.screenHeight),
+            'x-screen-width': String(headerData.screenWidth),
+            'x-time-zone': headerData.timeZone,
+          },
+        });
+
+        // Generate JWT (non-transactional)
+        const token = this.jwtService.sign({
+          sub: savedUser.id,
+          email: savedUser.email,
+        });
+
+        this.logger.log(`User registered: ${savedUser.email}`);
+        return {
+          success: true,
+          message: 'Registration successful',
+          user: {
+            id: savedUser.id,
+            email: savedUser.email,
+            firstName: savedUser.firstName,
+            lastName: savedUser.lastName,
+            token,
+          },
+        };
+      } catch (error) {
+        this.logger.error(`Registration failed: ${error.message}`);
+        throw error; // Automatic rollback
       }
-
-      savedUser.activeSubscription =
-        await this.userSubscriptionRepository.save(subscription);
-      await this.userRepository.save(savedUser);
-    } else {
-      this.logger.warn('No free plan available to assign to new user');
-    }
-
-    const token = this.jwtService.sign({
-      sub: savedUser.id,
-      email: savedUser.email,
     });
-
-    await this.visitorService.trackVisitor(savedUser.id, {
-      ipAddress: headerData.cfConnectingIp || '',
-      userAgent: headerData.userAgent || '',
-      deviceId: headerData.deviceId,
-      headers: {
-        'accept-encoding': headerData.acceptEncoding,
-        'accept-language': headerData.acceptLanguage,
-        'cf-connecting-ip': headerData.cfConnectingIp,
-        'cf-country': headerData.cfCountry,
-        'cf-ray': headerData.cfRay,
-        'cf-visitor': headerData.cfVisitor,
-        dnt: headerData.dnt,
-        origin: headerData.origin,
-        referer: headerData.referer,
-        'sec-ch-ua': headerData.secChUa,
-        'sec-ch-ua-mobile': headerData.secChUaMobile,
-        'sec-ch-ua-platform': headerData.secChUaPlatform,
-        'sec-fetch-dest': headerData.secFetchDest,
-        'sec-fetch-mode': headerData.secFetchMode,
-        'sec-fetch-site': headerData.secFetchSite,
-        'user-agent': headerData.userAgent,
-        'x-color-depth': headerData.colorDepth,
-        'x-device-memory': headerData.deviceMemory,
-        'x-hardware-concurrency': headerData.hardwareConcurrency,
-        'x-platform': headerData.platform,
-        'x-screen-height': String(headerData.screenHeight),
-        'x-screen-width': String(headerData.screenWidth),
-        'x-time-zone': headerData.timeZone,
-      } as Record<string, string>,
-    });
-
-    this.logger.log(`User registered successfully: ${savedUser.email}`);
-    return {
-      success: true,
-      message: 'User registered successfully',
-      user: {
-        id: savedUser.id,
-        email: savedUser.email,
-        firstName: savedUser.firstName,
-        lastName: savedUser.lastName,
-        token: token,
-      },
-    };
   }
 
   async login(loginDto: LoginDto): Promise<IAuthResponse> {

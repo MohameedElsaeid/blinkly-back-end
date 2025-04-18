@@ -18,18 +18,13 @@ export class CsrfService {
         httpOnly: true,
         path: '/',
         maxAge: 60 * 60 * 24,
-        domain: undefined,
+        domain:
+          process.env.NODE_ENV === 'production' ? '.blinkly.app' : undefined,
       },
       size: 64,
       ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
       getTokenFromRequest: (req: Request) => {
-        console.log('ddd');
-        return (
-          req.headers['x-csrf-token'] ||
-          req.headers['x-xsrf-token'] ||
-          req.cookies['XSRF-TOKEN'] ||
-          req.body?.csrfToken
-        );
+        return req.cookies['XSRF-TOKEN'];
       },
     });
   }

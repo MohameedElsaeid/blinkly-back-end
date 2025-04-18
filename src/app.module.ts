@@ -116,7 +116,7 @@ const redisStoreFactory: any = redisStore;
     RedirectModule,
     VisitorModule,
     DashboardModule,
-    CsrfModule,
+    // CsrfModule,
   ],
   controllers: [],
   providers: [],

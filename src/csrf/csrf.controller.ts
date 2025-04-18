@@ -10,11 +10,7 @@ export class CsrfController {
   @Get('csrf-token')
   getCsrfToken(@Req() req: Request, @Res() res: Response) {
     // Clear existing cookies to prevent conflicts
-    const cookieName =
-      process.env.NODE_ENV === 'production'
-        ? '__Host-psifi.x-csrf-token'
-        : 'psifi.x-csrf-token';
-
+    const cookieName = 'XSRF-TOKEN';
     res.clearCookie(cookieName);
     res.clearCookie('XSRF-TOKEN');
 

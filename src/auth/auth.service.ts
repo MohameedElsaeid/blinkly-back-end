@@ -1,9 +1,9 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -79,7 +79,7 @@ export class AuthService {
 
     if (existingUser) {
       this.logger.log('User with this email or phone number already exists');
-      throw new ConflictException(
+      throw new BadRequestException(
         'User with this email or phone number already exists',
       );
     }
@@ -173,13 +173,13 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new BadRequestException('Invalid credentials');
     }
 
     const isMatch: boolean = await user.validatePassword(loginDto.password);
 
     if (!isMatch) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new BadRequestException('Invalid credentials');
     }
 
     const token = this.jwtService.sign({

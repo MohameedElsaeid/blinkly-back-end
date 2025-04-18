@@ -37,6 +37,7 @@ export class AuthController {
     @Headers() headers: Record<string, string>,
     @Body() signUpDto: SignUpDto,
   ): Promise<IAuthResponse> {
+    console.log(`Headers In Signup Request : ${headers}`);
     return this.authService.signUp(signUpDto, {
       deviceId: headers['x-device-id'],
       userAgent: headers['user-agent'],

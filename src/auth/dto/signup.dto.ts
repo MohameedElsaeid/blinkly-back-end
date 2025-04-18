@@ -29,9 +29,13 @@ export class SignUpDto {
     },
   )
   @MaxLength(255, { message: 'Email must not exceed 255 characters' })
-  @Matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, {
-    message: 'Email format is invalid',
-  })
+  @Matches(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])[A-Za-z\d\S]{8,}$/,
+    {
+      message:
+        'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
+    },
+  )
   email: string;
 
   @ApiProperty({
@@ -44,7 +48,7 @@ export class SignUpDto {
   @MinLength(8, { message: 'Password must be at least 8 characters' })
   @MaxLength(32, { message: 'Password must not exceed 32 characters' })
   @Matches(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])[A-Za-z\d\S]{8,}$/,
     {
       message:
         'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',

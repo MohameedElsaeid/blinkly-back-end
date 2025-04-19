@@ -56,6 +56,9 @@ export class InitSchema1745101834041 implements MigrationInterface {
       `ALTER TABLE "public"."visits" ADD CONSTRAINT "FK_28f19616757b505532162fd6e75" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
+      `ALTER TABLE "public"."visits" ADD CONSTRAINT uq_user_devices_user_device UNIQUE ("userId", "deviceId", "xDeviceId")`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "public"."visits" ADD CONSTRAINT "FK_8c53188ba68a6aa25af8af85407" FOREIGN KEY ("userDeviceId") REFERENCES "public"."user_devices"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(

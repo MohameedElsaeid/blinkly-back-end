@@ -32,6 +32,9 @@ export class SignupService {
     signUpDto: SignUpDto,
     headerData: HeaderData,
   ): Promise<IAuthResponse> {
+    this.logger.log(`HeadersXXX:\n${JSON.stringify(headerData, null, 2)}`);
+    this.logger.log(`Dev:\n${headerData.deviceId}`);
+
     return this.manager.transaction(async (transactionalEntityManager) => {
       try {
         // Check existing user
@@ -148,7 +151,7 @@ export class SignupService {
     const result = await manager.getRepository(UserDevice).upsert(
       {
         deviceId: headerData.deviceId,
-        xDeviceId: headerData.xDeviceId,
+        xDeviceId: headerData.xDeviceId ?? null,
         xDeviceMemory: headerData.xDeviceMemory ?? null,
         xPlatform: headerData.xPlatform ?? null,
         xScreenWidth: headerData.xScreenWidth ?? null,

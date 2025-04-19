@@ -19,6 +19,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { IAuthResponse } from './interfaces/auth.interface';
 import { HeaderData } from '../interfaces/headers.interface';
 import { SignupService } from './services/signup.service';
+import { HeaderTransformPipe } from '../pipes/header‑transform.pipe';
 
 @ApiTags('Auth')
 @UseGuards(ThrottlerGuard)
@@ -27,6 +28,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly signupService: SignupService,
+    private readonly headerTransform: HeaderTransformPipe,
   ) {}
 
   @Post('signup')
@@ -39,10 +41,10 @@ export class AuthController {
     type: Object,
   })
   async signUp(
-    @Headers() headers: HeaderData,
+    @Headers() raw: Record<string, string>,
     @Body() signUpDto: SignUpDto,
   ): Promise<IAuthResponse> {
-    console.log(`Headers In Signup Request : ${headers}`);
+    const headers = this.headerTransform.transform(raw);
     return this.signupService.signUp(signUpDto, headers);
   }
 

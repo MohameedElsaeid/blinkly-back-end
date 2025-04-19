@@ -12,6 +12,7 @@ import { UserSubscription } from '../entities/user-subscription.entity';
 import { Plan } from '../entities/plan.entity';
 import { VisitorModule } from '../visitor/visitor.module';
 import { SignupService } from './services/signup.service';
+import { HeaderTransformPipe } from '../pipes/header‑transform.pipe';
 
 @Module({
   imports: [
@@ -31,6 +32,12 @@ import { SignupService } from './services/signup.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [SignupService, AuthService, LocalStrategy, JwtStrategy],
+  providers: [
+    HeaderTransformPipe,
+    SignupService,
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+  ],
 })
 export class AuthModule {}

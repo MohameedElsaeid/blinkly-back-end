@@ -5,11 +5,13 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Visit } from './visit.entity';
 
 @Entity('user_devices')
+@Unique(['user', 'deviceId', 'xDeviceId'])
 export class UserDevice {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -25,7 +27,7 @@ export class UserDevice {
   user?: User;
 
   @Column({ type: 'varchar' }) deviceId: string;
-  @Column({ type: 'varchar' }) xDeviceId: string;
+  @Column({ type: 'varchar', nullable: true }) xDeviceId: string | null;
   @Column('int', { nullable: true }) xDeviceMemory?: number | null;
   @Column('int', { nullable: true }) xHardwareConcurrency?: number | null;
   @Column({ type: 'varchar', nullable: true }) xPlatform?: string | null;

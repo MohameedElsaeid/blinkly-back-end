@@ -19,10 +19,15 @@ export class PackagesService {
   constructor(
     @InjectRepository(Plan)
     private readonly planRepository: Repository<Plan>,
-  ) {
-    this.seedPlans().catch((error) => {
-      this.logger.error('Failed to seed plans:', error);
-    });
+  ) {}
+
+  async onApplicationBootstrap() {
+    try {
+      await this.seedPlans();
+      this.logger.log('Plans seeded/updated successfully');
+    } catch (err) {
+      this.logger.error('Failed to seed plans', err);
+    }
   }
 
   async getAllPackages(): Promise<Record<string, PublicPlan[]>> {
@@ -81,7 +86,7 @@ export class PackagesService {
     return null;
   }
 
-  private async seedPlans() {
+  public async seedPlans() {
     // Define monthly plans with updated pricing and features
     const monthlyPlans = [
       {

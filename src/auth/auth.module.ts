@@ -11,6 +11,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserSubscription } from '../entities/user-subscription.entity';
 import { Plan } from '../entities/plan.entity';
 import { VisitorModule } from '../visitor/visitor.module';
+import { SignupService } from './services/signup.service';
 
 @Module({
   imports: [
@@ -30,6 +31,6 @@ import { VisitorModule } from '../visitor/visitor.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [SignupService, AuthService, LocalStrategy, JwtStrategy],
 })
 export class AuthModule {}

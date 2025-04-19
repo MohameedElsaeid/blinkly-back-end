@@ -7,7 +7,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import redisStore from 'cache-manager-redis-store';
 import { AuthModule } from './auth/auth.module';
 import { LinksModule } from './links/links.module';
-import { AnalyticsModule } from './analytics/analytics.module';
 import { QrModule } from './qr/qr.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { QueueModule } from './queue/queue.module';
@@ -26,9 +25,9 @@ import { PackagesModule } from './packages/packages.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RedirectModule } from './redirect/redirect.service';
 import { VisitorModule } from './visitor/visitor.module';
-import { Visitor } from './entities/visitor.entity';
+import { Visit } from './entities/visit.entity';
 import { DashboardModule } from './dashboard/dashboard.module';
-import { CsrfModule } from './csrf/csrf.module';
+import { UserDevice } from './entities/user-device.entity';
 
 const redisStoreFactory: any = redisStore;
 
@@ -67,7 +66,8 @@ const redisStoreFactory: any = redisStore;
           Plan,
           UserSubscription,
           WebhookEndpoint,
-          Visitor,
+          Visit,
+          UserDevice,
         ],
         migrations: [__dirname + '/../migrations/*.js'],
         synchronize: configService.get<boolean>('database.synchronize'),
@@ -107,7 +107,6 @@ const redisStoreFactory: any = redisStore;
     ]),
     AuthModule,
     LinksModule,
-    AnalyticsModule,
     QrModule,
     WebhooksModule,
     QueueModule,
@@ -116,7 +115,6 @@ const redisStoreFactory: any = redisStore;
     RedirectModule,
     VisitorModule,
     DashboardModule,
-    // CsrfModule,
   ],
   controllers: [],
   providers: [],

@@ -9,7 +9,6 @@ import { Repository } from 'typeorm';
 import { Request } from 'express';
 import { Link } from '../entities/link.entity';
 import { DynamicLink } from '../entities/dynamic-link.entity';
-import { AnalyticsService } from '../analytics/analytics.service';
 import { IClickData } from '../interfaces/analytics.interface';
 import { UAParser } from 'ua-parser-js';
 
@@ -27,7 +26,6 @@ export class RedirectService {
     private readonly linkRepository: Repository<Link>,
     @InjectRepository(DynamicLink)
     private readonly dynamicLinkRepository: Repository<DynamicLink>,
-    private readonly analyticsService: AnalyticsService,
   ) {}
 
   async handleRedirect(
@@ -130,8 +128,6 @@ export class RedirectService {
       throw new BadRequestException('Link has expired');
     }
 
-    await this.analyticsService.recordClickForLink(link.alias, clickData);
-
     return {
       url: link.originalUrl,
       statusCode: link.redirectType,
@@ -148,10 +144,6 @@ export class RedirectService {
     }
 
     const targetUrl = this.determineTargetUrl(dynamicLink, req);
-    await this.analyticsService.recordClickForDynamicLink(
-      dynamicLink.alias,
-      clickData,
-    );
 
     return {
       url: targetUrl,

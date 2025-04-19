@@ -17,12 +17,17 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyPhoneDto } from './dto/verify-phone.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { IAuthResponse } from './interfaces/auth.interface';
+import { HeaderData } from '../interfaces/headers.interface';
+import { SignupService } from './services/signup.service';
 
 @ApiTags('Auth')
 @UseGuards(ThrottlerGuard)
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly signupService: SignupService,
+  ) {}
 
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
@@ -34,36 +39,11 @@ export class AuthController {
     type: Object,
   })
   async signUp(
-    @Headers() headers: Record<string, string>,
+    @Headers() headers: HeaderData,
     @Body() signUpDto: SignUpDto,
   ): Promise<IAuthResponse> {
     console.log(`Headers In Signup Request : ${headers}`);
-    return this.authService.signUp(signUpDto, {
-      deviceId: headers['x-device-id'],
-      userAgent: headers['user-agent'],
-      platform: headers['x-platform'],
-      screenWidth: parseInt(headers['x-screen-width'] || '0', 10),
-      screenHeight: parseInt(headers['x-screen-height'] || '0', 10),
-      colorDepth: headers['x-color-depth'],
-      deviceMemory: headers['x-device-memory'],
-      hardwareConcurrency: headers['x-hardware-concurrency'],
-      timeZone: headers['x-time-zone'],
-      acceptEncoding: headers['accept-encoding'],
-      acceptLanguage: headers['accept-language'],
-      origin: headers['origin'],
-      referer: headers['referer'],
-      secChUa: headers['sec-ch-ua'],
-      secChUaMobile: headers['sec-ch-ua-mobile'],
-      secChUaPlatform: headers['sec-ch-ua-platform'],
-      secFetchDest: headers['sec-fetch-dest'],
-      secFetchMode: headers['sec-fetch-mode'],
-      secFetchSite: headers['sec-fetch-site'],
-      dnt: headers['dnt'],
-      cfConnectingIp: headers['cf-connecting-ip'],
-      cfCountry: headers['cf-country'],
-      cfRay: headers['cf-ray'],
-      cfVisitor: headers['cf-visitor'],
-    });
+    return this.signupService.signUp(signUpDto, headers);
   }
 
   @Post('login')

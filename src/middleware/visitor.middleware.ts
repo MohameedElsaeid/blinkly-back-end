@@ -18,14 +18,14 @@ export class VisitorMiddleware implements NestMiddleware {
         const payload = this.jwtService.verify(token);
         const userId = payload.sub;
 
-        if (userId) {
-          await this.visitorService.trackVisitor(userId, {
-            ipAddress: req.ip as string,
-            userAgent: req.headers['user-agent'] || '',
-            deviceId: req.headers['device-id'] as string,
-            headers: req.headers as Record<string, string>,
-          });
-        }
+        // if (userId) {
+        //   await this.visitorService.trackVisitor(userId, {
+        //     ipAddress: req.ip as string,
+        //     userAgent: req.headers['user-agent'] || '',
+        //     deviceId: req.headers['device-id'] as string,
+        //     headers: req.headers as Record<string, string>,
+        //   });
+        // }
       }
     } catch (error) {
       // Log error but don't block the request

@@ -23,34 +23,9 @@ import {
   UserSubscription,
 } from '../entities/user-subscription.entity';
 import { VisitorService } from '../visitor/visitor.service';
-import { Visitor } from '../entities/visitor.entity';
-
-interface HeaderData {
-  deviceId?: string;
-  userAgent?: string;
-  platform?: string;
-  screenWidth?: number;
-  screenHeight?: number;
-  colorDepth?: string;
-  deviceMemory?: string;
-  hardwareConcurrency?: string;
-  timeZone?: string;
-  acceptEncoding?: string;
-  acceptLanguage?: string;
-  origin?: string;
-  referer?: string;
-  secChUa?: string;
-  secChUaMobile?: string;
-  secChUaPlatform?: string;
-  secFetchDest?: string;
-  secFetchMode?: string;
-  secFetchSite?: string;
-  dnt?: string;
-  cfConnectingIp?: string;
-  cfCountry?: string;
-  cfRay?: string;
-  cfVisitor?: string;
-}
+import { Visit } from '../entities/visit.entity';
+import { UserDevice } from '../entities/user-device.entity';
+import { HeaderData } from '../interfaces/headers.interface';
 
 @Injectable()
 export class AuthService {
@@ -68,128 +43,152 @@ export class AuthService {
     private readonly visitorService: VisitorService,
   ) {}
 
-  async signUp(
-    signUpDto: SignUpDto,
-    headerData: HeaderData,
-  ): Promise<IAuthResponse> {
-    return this.manager.transaction(async (transactionalEntityManager) => {
-      try {
-        // Check existing user
-        const existingUser = await transactionalEntityManager
-          .getRepository(User)
-          .findOne({
-            where: [
-              { email: signUpDto.email },
-              { phoneNumber: signUpDto.phoneNumber },
-            ],
-          });
-
-        if (existingUser) {
-          this.logger.log('User already exists');
-          throw new BadRequestException('User already exists');
-        }
-
-        // Create user
-        const user = transactionalEntityManager.getRepository(User).create({
-          ...signUpDto,
-          ipAddress: headerData.cfConnectingIp,
-        });
-
-        const savedUser = await transactionalEntityManager
-          .getRepository(User)
-          .save(user);
-
-        // Handle subscription
-        const freePlan = await transactionalEntityManager
-          .getRepository(Plan)
-          .findOne({
-            where: { name: PlanName.FREE },
-            cache: true,
-          });
-
-        if (!freePlan) {
-          this.logger.error('Free plan not found');
-          throw new InternalServerErrorException('System configuration error');
-        }
-
-        const subscription = transactionalEntityManager
-          .getRepository(UserSubscription)
-          .create({
-            user: savedUser,
-            plan: freePlan,
-            startDate: new Date(),
-            status: freePlan.freeTrialAvailable
-              ? SubscriptionStatus.TRIAL
-              : SubscriptionStatus.ACTIVE,
-            endDate:
-              freePlan.freeTrialAvailable && freePlan.freeTrialDays
-                ? new Date(Date.now() + freePlan.freeTrialDays * 86400000)
-                : null,
-          });
-
-        // Update user with subscription
-        savedUser.activeSubscription = await transactionalEntityManager
-          .getRepository(UserSubscription)
-          .save(subscription);
-        await transactionalEntityManager.getRepository(User).save(savedUser);
-
-        // Track visitor
-        await transactionalEntityManager.getRepository(Visitor).save({
-          userId: savedUser.id,
-          ipAddress: headerData.cfConnectingIp || '',
-          userAgent: headerData.userAgent || '',
-          deviceId: headerData.deviceId,
-          headers: {
-            'accept-encoding': headerData.acceptEncoding,
-            'accept-language': headerData.acceptLanguage,
-            'cf-connecting-ip': headerData.cfConnectingIp,
-            'cf-country': headerData.cfCountry,
-            'cf-ray': headerData.cfRay,
-            'cf-visitor': headerData.cfVisitor,
-            dnt: headerData.dnt,
-            origin: headerData.origin,
-            referer: headerData.referer,
-            'sec-ch-ua': headerData.secChUa,
-            'sec-ch-ua-mobile': headerData.secChUaMobile,
-            'sec-ch-ua-platform': headerData.secChUaPlatform,
-            'sec-fetch-dest': headerData.secFetchDest,
-            'sec-fetch-mode': headerData.secFetchMode,
-            'sec-fetch-site': headerData.secFetchSite,
-            'user-agent': headerData.userAgent,
-            'x-color-depth': headerData.colorDepth,
-            'x-device-memory': headerData.deviceMemory,
-            'x-hardware-concurrency': headerData.hardwareConcurrency,
-            'x-platform': headerData.platform,
-            'x-screen-height': String(headerData.screenHeight),
-            'x-screen-width': String(headerData.screenWidth),
-            'x-time-zone': headerData.timeZone,
-          },
-        });
-
-        // Generate JWT (non-transactional)
-        const token = this.jwtService.sign({
-          sub: savedUser.id,
-          email: savedUser.email,
-        });
-
-        this.logger.log(`User registered: ${savedUser.email}`);
-        return {
-          success: true,
-          message: 'Registration successful',
-          user: {
-            id: savedUser.id,
-            email: savedUser.email,
-            firstName: savedUser.firstName,
-            lastName: savedUser.lastName,
-            token,
-          },
-        };
-      } catch (error) {
-        this.logger.error(`Registration failed: ${error.message}`);
-        throw error; // Automatic rollback
-      }
-    });
-  }
+  // async signUp(
+  //   signUpDto: SignUpDto,
+  //   headerData: HeaderData,
+  // ): Promise<IAuthResponse> {
+  //   return this.manager.transaction(async (transactionalEntityManager) => {
+  //     try {
+  //       // Check existing user
+  //       const existingUser = await transactionalEntityManager
+  //         .getRepository(User)
+  //         .findOne({
+  //           where: [
+  //             { email: signUpDto.email },
+  //             { phoneNumber: signUpDto.phoneNumber },
+  //           ],
+  //         });
+  //
+  //       if (existingUser) {
+  //         this.logger.log('User already exists');
+  //         throw new BadRequestException('User already exists');
+  //       }
+  //
+  //       // Create user
+  //       const user = transactionalEntityManager.getRepository(User).create({
+  //         ...signUpDto,
+  //         ipAddress: headerData.cfConnectingIp,
+  //       });
+  //
+  //       const savedUser = await transactionalEntityManager
+  //         .getRepository(User)
+  //         .save(user);
+  //
+  //       // Handle subscription
+  //       const freePlan = await transactionalEntityManager
+  //         .getRepository(Plan)
+  //         .findOne({
+  //           where: { name: PlanName.FREE },
+  //           cache: true,
+  //         });
+  //
+  //       if (!freePlan) {
+  //         this.logger.error('Free plan not found');
+  //         throw new InternalServerErrorException('System configuration error');
+  //       }
+  //
+  //       const subscription = transactionalEntityManager
+  //         .getRepository(UserSubscription)
+  //         .create({
+  //           user: savedUser,
+  //           plan: freePlan,
+  //           startDate: new Date(),
+  //           status: freePlan.freeTrialAvailable
+  //             ? SubscriptionStatus.TRIAL
+  //             : SubscriptionStatus.ACTIVE,
+  //           endDate:
+  //             freePlan.freeTrialAvailable && freePlan.freeTrialDays
+  //               ? new Date(Date.now() + freePlan.freeTrialDays * 86400000)
+  //               : null,
+  //         });
+  //
+  //       // Update user with subscription
+  //       savedUser.activeSubscription = await transactionalEntityManager
+  //         .getRepository(UserSubscription)
+  //         .save(subscription);
+  //       await transactionalEntityManager.getRepository(User).save(savedUser);
+  //       const userDevice = await transactionalEntityManager
+  //         .getRepository(UserDevice)
+  //         .upsert(
+  //           {
+  //             deviceId: headerData.deviceId,
+  //             xDeviceId: headerData.xDeviceId,
+  //             xDeviceMemory: headerData.xDeviceMemory ?? null,
+  //             xPlatform: headerData.xPlatform ?? null,
+  //             xScreenWidth: headerData.xScreenWidth ?? null,
+  //             xScreenHeight: headerData.xScreenHeight ?? null,
+  //             xColorDepth: headerData.xColorDepth ?? null,
+  //             xTimeZone: headerData.xTimeZone ?? null,
+  //             userId: savedUser.id,
+  //           },
+  //           ['userId', 'deviceId', 'xDeviceId'],
+  //         );
+  //       const [{ id: deviceId }] = userDevice.identifiers;
+  //
+  //       const visitRepo = transactionalEntityManager.getRepository(Visit);
+  //
+  //       const visit = visitRepo.create({
+  //         user: savedUser,
+  //         userDeviceId: deviceId,
+  //         timestamp: new Date(),
+  //         ipAddress: headerData.cfConnectingIp ?? null,
+  //         userAgent: headerData.userAgent ?? null,
+  //         deviceId: headerData.deviceId ?? null,
+  //         cfRay: headerData.cfRay ?? null,
+  //         requestTime: headerData.xRequestTime,
+  //         cfConnectingIp: headerData.cfConnectingIp ?? null,
+  //         cfIpCountry: headerData.country ?? null,
+  //         cfVisitorScheme: headerData.cfVisitorScheme ?? null,
+  //         acceptEncoding: headerData.acceptEncoding ?? null,
+  //         acceptLanguage: headerData.acceptLanguage ?? null,
+  //         dnt: headerData.dnt ?? null,
+  //         origin: headerData.origin ?? null,
+  //         referer: headerData.referer ?? null,
+  //         secChUa: headerData.secChUa ?? null,
+  //         secChUaMobile: headerData.secChUaMobile ?? null,
+  //         secChUaPlatform: headerData.secChUaPlatform ?? null,
+  //         secFetchDest: headerData.secFetchDest ?? null,
+  //         secFetchMode: headerData.secFetchMode ?? null,
+  //         secFetchSite: headerData.secFetchSite ?? null,
+  //         xPlatform: headerData.xPlatform ?? null,
+  //         xTimeZone: headerData.xTimeZone ?? null,
+  //         xColorDepth: headerData.xColorDepth ?? null,
+  //         xDeviceMemory: headerData.xDeviceMemory ?? null,
+  //         xScreenWidth: headerData.xScreenWidth ?? null,
+  //         xScreenHeight: headerData.xScreenHeight ?? null,
+  //         xForwardedProto: headerData.xForwardedProto ?? null,
+  //         xLanguage: headerData.xLanguage ?? null,
+  //         contentType: headerData.contentType ?? null,
+  //         cacheControl: headerData.cacheControl ?? null,
+  //         priority: headerData.priority ?? null,
+  //         queryParams: headerData.queryParams ?? null,
+  //       });
+  //       await visitRepo.save(visit);
+  //
+  //       // Generate JWT (non-transactional)
+  //       const token = this.jwtService.sign({
+  //         sub: savedUser.id,
+  //         email: savedUser.email,
+  //       });
+  //
+  //       this.logger.log(`User registered: ${savedUser.email}`);
+  //       return {
+  //         success: true,
+  //         message: 'Registration successful',
+  //         user: {
+  //           id: savedUser.id,
+  //           email: savedUser.email,
+  //           firstName: savedUser.firstName,
+  //           lastName: savedUser.lastName,
+  //           token,
+  //         },
+  //       };
+  //     } catch (error) {
+  //       this.logger.error(`Registration failed: ${error.message}`);
+  //       throw error; // Automatic rollback
+  //     }
+  //   });
+  // }
 
   async login(loginDto: LoginDto): Promise<IAuthResponse> {
     const user = await this.userRepository.findOne({

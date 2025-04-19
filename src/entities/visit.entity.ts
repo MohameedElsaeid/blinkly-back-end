@@ -7,39 +7,34 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 import { UserDevice } from './user-device.entity';
-import { Link } from './link.entity';
 
-@Entity('click_events')
-export class ClickEvent {
+@Entity('visits')
+export class Visit {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'timestamptz', nullable: true })
-  timestamp: Date | null;
+  @Column({ type: 'timestamptz' })
+  timestamp: Date;
 
   @Column('uuid', { nullable: true })
-  userId?: string;
+  userId?: string | null;
 
-  @ManyToOne(() => User, { nullable: true, onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (u) => u.visits, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
   @JoinColumn({ name: 'userId' })
   user?: User;
 
-  @Column('uuid', { nullable: true })
-  userDeviceId?: string | null;
+  @Column('uuid')
+  userDeviceId: string;
 
-  @ManyToOne(() => UserDevice, {
-    nullable: true,
-    onDelete: 'CASCADE',
+  @ManyToOne(() => UserDevice, (d) => d.visits, {
+    cascade: true,
+    eager: true,
   })
   @JoinColumn({ name: 'userDeviceId' })
-  userDevice?: UserDevice | null;
-
-  @Column('uuid')
-  linkId: string;
-
-  @ManyToOne(() => Link, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'linkId' })
-  link: Link;
+  userDevice: UserDevice;
 
   @Column({ type: 'varchar', nullable: true }) host: string | null;
   @Column({ type: 'varchar', nullable: true }) cfRay: string | null;
@@ -96,4 +91,14 @@ export class ClickEvent {
   @Column({ type: 'varchar', nullable: true }) xCustomHeader: string | null;
   @Column({ type: 'varchar', nullable: true }) xDeviceId: string | null;
   @Column({ type: 'varchar', nullable: true }) doConnectingIp: string | null;
+  @Column({ type: 'varchar', nullable: true }) browser: string | null;
+  @Column({ type: 'varchar', nullable: true }) browserVersion: string | null;
+  @Column({ type: 'varchar', nullable: true }) os: string | null;
+  @Column({ type: 'varchar', nullable: true }) osVersion: string | null;
+  @Column({ type: 'varchar', nullable: true }) device: string | null;
+  @Column({ type: 'varchar', nullable: true }) deviceType: string | null;
+  @Column({ type: 'jsonb', nullable: true }) queryParams: Record<
+    string,
+    any
+  > | null;
 }

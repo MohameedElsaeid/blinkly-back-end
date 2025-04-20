@@ -6,6 +6,7 @@ import * as cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
 import { NextFunction, Request, Response } from 'express';
+import { PackagesService } from './packages/packages.service';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bodyParser: true });
@@ -195,6 +196,8 @@ async function bootstrap(): Promise<void> {
       SwaggerModule.createDocument(app, swaggerConfig),
     );
   }
+
+  await app.get(PackagesService).seedPlans();
 
   const port = process.env.PORT || 5147;
   await app.listen(port, () => {

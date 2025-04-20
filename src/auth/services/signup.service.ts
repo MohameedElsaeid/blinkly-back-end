@@ -222,11 +222,7 @@ export class SignupService {
     if (!params) return undefined;
 
     // If it's already a proper object
-    if (
-      typeof params === 'object' &&
-      params !== null &&
-      !Array.isArray(params)
-    ) {
+    if (typeof params === 'object' && !Array.isArray(params)) {
       return this.cleanQueryParams(params as Record<string, unknown>);
     }
 

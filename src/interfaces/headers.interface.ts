@@ -1,4 +1,6 @@
 export interface HeaderData {
+  xGeoData?: string;
+  cfVisitor?: string;
   queryParams?: string;
   host?: string;
   cfRay?: string;
@@ -11,7 +13,7 @@ export interface HeaderData {
   xLanguage?: string;
 
   cfVisitorScheme?: string;
-  cfIpCountry?: string;
+  cfIpcountry?: string;
 
   xHardwareConcurrency?: number | null;
 

@@ -18,6 +18,8 @@ import {
 import { UserDevice } from '../../entities/user-device.entity';
 import { Visit } from '../../entities/visit.entity';
 import { JwtService } from '@nestjs/jwt';
+import { UAParser } from 'ua-parser-js';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class SignupService {
@@ -168,24 +170,47 @@ export class SignupService {
     });
   }
 
+  private generateDeviceId(headerData: Record<string, any>): string {
+    const rawFingerprint = [
+      headerData.userAgent,
+      headerData.xScreenWidth,
+      headerData.xScreenHeight,
+      headerData.xDeviceMemory,
+      headerData.xPlatform,
+      headerData.xTimeZone,
+      headerData.acceptLanguage,
+      headerData.cfConnectingIp,
+      headerData.xDeviceId, // optional custom
+    ]
+      .filter(Boolean) // remove undefined/null
+      .join('|');
+
+    return crypto.createHash('sha256').update(rawFingerprint).digest('hex');
+  }
+
   private async trackVisit(
     manager: EntityManager,
     user: User,
     userDevice: UserDevice,
     headerData: HeaderData,
   ): Promise<void> {
+    const { geoCountry, geoLatitude, geoLongitude, geoCity } =
+      this.extractGeoData(headerData.xGeoData);
+
+    const ua = new UAParser(headerData.userAgent);
+    const deviceId = this.generateDeviceId(headerData);
+
     const visitData: DeepPartial<Visit> = {
       timestamp: new Date(),
       user: user, // Use the relation property, not userId
       userDevice: userDevice, // Use the relation property, not userDeviceId
       userDeviceId: userDevice?.id,
       userAgent: headerData.userAgent ?? null,
-      deviceId: headerData.deviceId ?? null,
+      deviceId: deviceId,
       cfRay: headerData.cfRay ?? null,
       requestTime: headerData.xRequestTime,
       cfConnectingIp: headerData.cfConnectingIp ?? null,
-      cfIpCountry: headerData.country ?? null,
-      cfVisitorScheme: headerData.cfVisitorScheme ?? null,
+      cfIpCountry: headerData.cfIpcountry ?? null,
       acceptEncoding: headerData.acceptEncoding ?? null,
       acceptLanguage: headerData.acceptLanguage ?? null,
       dnt: headerData.dnt ?? null,
@@ -209,10 +234,88 @@ export class SignupService {
       cacheControl: headerData.cacheControl ?? null,
       priority: headerData.priority ?? null,
       queryParams: this.normalizeQueryParams(headerData.queryParams),
+      host: headerData.host ?? null,
+      requestId: headerData.xRequestId ?? null,
+      cfVisitorScheme: this.extractCfScheme(headerData.cfVisitor),
+      geoCountry: geoCountry,
+      geoCity: geoCity,
+      geoLatitude: geoLatitude,
+      geoLongitude: geoLongitude,
+      xFbBrowserId: headerData.xFbBrowserId,
+      xFbClickId: headerData.xFbClickId,
+      cfConnectingO2O: headerData.cfConnectingO2O ?? null,
+      contentLength: headerData.contentLength,
+      xForwardedFor: headerData.xForwardedFor,
+      xXsrfToken: headerData.xXsrfToken,
+      xUserAgent: headerData.xUserAgent ?? null,
+      xRequestedWith: headerData.xRequestedWith ?? null,
+      cfEwVia: headerData.cfEwVia ?? null,
+      cdnLoop: headerData.cdnLoop ?? null,
+      accept: headerData.accept,
+      xClientFeatures: headerData.xClientFeatures ?? null,
+      xCsrfToken: headerData.xCsrfToken ?? null,
+      xCustomHeader: headerData.xCustomHeader ?? null,
+      xDeviceId: headerData.xDeviceId ?? null,
+      doConnectingIp: headerData.doConnectingIp ?? null,
+      browser: ua.getBrowser().name ?? null,
+      os: ua.getOS().name,
+      osVersion: ua.getOS().version ?? null,
+      device: ua.getDevice().model ?? null,
+      deviceType: ua.getDevice().type,
+      browserVersion: ua.getBrowser().version ?? null,
     };
 
     const visit = manager.getRepository(Visit).create(visitData);
     await manager.save(visit);
+  }
+
+  private extractGeoData(xGeoDataRaw: string | null | undefined): {
+    geoCountry: string | null;
+    geoCity: string | null;
+    geoLatitude: number | null;
+    geoLongitude: number | null;
+  } {
+    try {
+      if (xGeoDataRaw === null || xGeoDataRaw === undefined) {
+        return {
+          geoCountry: null,
+          geoCity: null,
+          geoLatitude: null,
+          geoLongitude: null,
+        };
+      }
+
+      const parsed = JSON.parse(xGeoDataRaw);
+
+      return {
+        geoCountry: parsed?.country?.toLowerCase?.() || '',
+        geoCity: parsed?.city || '',
+        geoLatitude: parsed?.latitude || '',
+        geoLongitude: parsed?.longitude || '',
+      };
+    } catch {
+      return {
+        geoCountry: null,
+        geoCity: null,
+        geoLatitude: null,
+        geoLongitude: null,
+      };
+    }
+  }
+
+  private extractCfScheme(
+    cfVisitorRaw: string | null | undefined,
+  ): string | null {
+    if (cfVisitorRaw === null || cfVisitorRaw === undefined) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(cfVisitorRaw);
+      return typeof parsed?.scheme === 'string' ? parsed.scheme : null;
+    } catch (err) {
+      return null;
+    }
   }
 
   private normalizeQueryParams(

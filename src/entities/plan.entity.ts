@@ -4,6 +4,7 @@ import {
   Entity,
   OneToMany,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { UserSubscription } from './user-subscription.entity';
@@ -21,6 +22,7 @@ export enum PlanName {
   ENTERPRISE = 'ENTERPRISE',
 }
 
+@Unique(['name', 'billingFrequency'])
 @Entity('plans')
 export class Plan {
   @PrimaryGeneratedColumn('uuid')

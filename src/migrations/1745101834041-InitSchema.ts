@@ -4,6 +4,8 @@ export class InitSchema1745101834041 implements MigrationInterface {
   name = 'InitSchema1745101834041';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
+
     await queryRunner.query(
       `CREATE TABLE "public"."visits" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL, "userId" uuid, "userDeviceId" uuid NOT NULL, "host" character varying, "cfRay" character varying, "requestTime" TIMESTAMP WITH TIME ZONE, "xDeviceMemory" integer, "requestId" character varying, "acceptEncoding" character varying, "xPlatform" character varying, "xForwardedProto" character varying, "xLanguage" character varying, "cfVisitorScheme" character varying, "cfIpCountry" character varying, "geoCountry" character varying, "geoCity" character varying, "geoLatitude" numeric(9,6), "geoLongitude" numeric(9,6), "xFbClickId" character varying, "xFbBrowserId" character varying, "cfConnectingO2O" character varying, "contentLength" integer, "xForwardedFor" character varying, "xXsrfToken" character varying, "xUserAgent" character varying, "xTimeZone" character varying, "xScreenWidth" integer, "xScreenHeight" integer, "xRequestedWith" character varying, "contentType" character varying, "cfEwVia" character varying, "cdnLoop" character varying, "acceptLanguage" character varying, "accept" character varying, "cacheControl" character varying, "referer" character varying, "userAgent" character varying, "cfConnectingIp" character varying, "deviceId" character varying, "dnt" character varying, "origin" character varying, "priority" character varying, "secChUa" character varying, "secChUaMobile" character varying, "secChUaPlatform" character varying, "secFetchDest" character varying, "secFetchMode" character varying, "secFetchSite" character varying, "xClientFeatures" character varying, "xColorDepth" integer, "xCsrfToken" character varying, "xCustomHeader" character varying, "xDeviceId" character varying, "doConnectingIp" character varying, "browser" character varying, "browserVersion" character varying, "os" character varying, "osVersion" character varying, "device" character varying, "deviceType" character varying, "queryParams" jsonb, CONSTRAINT "PK_0b0b322289a41015c6ea4e8bf30" PRIMARY KEY ("id"))`,
     );
@@ -42,6 +44,11 @@ export class InitSchema1745101834041 implements MigrationInterface {
     await queryRunner.query(
       `CREATE TABLE "public"."plans" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" "public"."plans_name_enum" NOT NULL, "billingFrequency" "public"."plans_billingfrequency_enum" NOT NULL, "price" integer, "description" character varying(255), "features" text, "shortenedLinksLimit" integer, "qrCodesLimit" integer, "freeTrialAvailable" boolean NOT NULL DEFAULT false, "freeTrialDays" integer, "isMostPopular" boolean NOT NULL DEFAULT false, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_3720521a81c7c24fe9b7202ba61" PRIMARY KEY ("id"))`,
     );
+    await queryRunner.query(`
+      ALTER TABLE "public"."plans"
+      ADD CONSTRAINT "UQ_plans_name_billingfrequency"
+      UNIQUE ("name", "billingFrequency");
+    `);
     await queryRunner.query(
       `CREATE TYPE "public"."user_subscriptions_status_enum" AS ENUM('active', 'trial', 'cancelled', 'expired')`,
     );

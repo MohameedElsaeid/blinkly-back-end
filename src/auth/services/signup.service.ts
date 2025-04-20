@@ -55,20 +55,20 @@ export class SignupService {
           savedUser,
         );
 
-        // Create/update user device
-        const userDevice = await this.upsertUserDevice(
-          transactionalEntityManager,
-          savedUser,
-          headerData,
-        );
+        // // Create/update user device
+        // const userDevice = await this.upsertUserDevice(
+        //   transactionalEntityManager,
+        //   savedUser,
+        //   headerData,
+        // );
 
-        // Track visit
-        await this.trackVisit(
-          transactionalEntityManager,
-          savedUser,
-          userDevice[0],
-          headerData,
-        );
+        // // Track visit
+        // await this.trackVisit(
+        //   transactionalEntityManager,
+        //   savedUser,
+        //   userDevice[0],
+        //   headerData,
+        // );
 
         // Generate JWT
         const token = this.generateToken(savedUser);

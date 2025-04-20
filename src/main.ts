@@ -6,6 +6,7 @@ import * as cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
 import { NextFunction, Request, Response } from 'express';
+import { User } from './entities/user.entity';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bodyParser: true });
@@ -136,30 +137,33 @@ async function bootstrap(): Promise<void> {
   });
 
   const httpLogger = new Logger('HTTP');
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    httpLogger.log(`Incoming Request: ${req.method} ${req.url}`);
-    // Log headers in a pretty format
-    httpLogger.debug(`Headers:\n${JSON.stringify(req.headers, null, 2)}`);
-    // Log params only if available
-    httpLogger.debug(`Params:\n${JSON.stringify(req.params, null, 2)}`);
-    next();
-  });
+  //
+  // app.use((req: Request, res: Response, next: NextFunction) => {
+  //   httpLogger.log(`Incoming Request User: ${req.user}`);
+  //
+  //   httpLogger.log(`Incoming Request: ${req.method} ${req.url}`);
+  //   // Log headers in a pretty format
+  //   httpLogger.debug(`Headers:\n${JSON.stringify(req.headers, null, 2)}`);
+  //   // Log params only if available
+  //   httpLogger.debug(`Params:\n${JSON.stringify(req.params, null, 2)}`);
+  //   next();
+  // });
 
   // Middleware to trust Cloudflare headers
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    req.headers['cf-connecting-ip'] =
-      req.headers['cf-connecting-ip'] ||
-      req.headers['x-forwarded-for'] ||
-      req.ip;
-
-    // Log all incoming Cloudflare headers for debugging
-    const cfHeaders = Object.entries(req.headers).filter(([key]) =>
-      key.toLowerCase().startsWith('cf-'),
-    );
-    httpLogger.debug(`Cloudflare Headers: ${JSON.stringify(cfHeaders)}`);
-
-    next();
-  });
+  // app.use((req: Request, res: Response, next: NextFunction) => {
+  //   req.headers['cf-connecting-ip'] =
+  //     req.headers['cf-connecting-ip'] ||
+  //     req.headers['x-forwarded-for'] ||
+  //     req.ip;
+  //
+  //   // Log all incoming Cloudflare headers for debugging
+  //   const cfHeaders = Object.entries(req.headers).filter(([key]) =>
+  //     key.toLowerCase().startsWith('cf-'),
+  //   );
+  //   // httpLogger.debug(`Cloudflare Headers: ${JSON.stringify(cfHeaders)}`);
+  //
+  //   next();
+  // });
 
   if (isProd) {
     app.use(

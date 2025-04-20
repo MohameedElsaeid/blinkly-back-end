@@ -39,5 +39,6 @@ import { HeaderTransformPipe } from '../pipes/header‑transform.pipe';
     LocalStrategy,
     JwtStrategy,
   ],
+  exports: [JwtModule, AuthService],
 })
 export class AuthModule {}

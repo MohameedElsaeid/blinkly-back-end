@@ -1,5 +1,5 @@
 //app.modules.ts
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -28,12 +28,12 @@ import { VisitorModule } from './visitor/visitor.module';
 import { Visit } from './entities/visit.entity';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UserDevice } from './entities/user-device.entity';
+import { VisitorTrackingMiddleware } from './middleware/visitor-tracking.middleware';
 
 const redisStoreFactory: any = redisStore;
 
 @Module({
   imports: [
-    // Global configuration module
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath:
@@ -117,6 +117,10 @@ const redisStoreFactory: any = redisStore;
     DashboardModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [VisitorTrackingMiddleware],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(VisitorTrackingMiddleware).forRoutes('*');
+  }
+}

@@ -21,14 +21,14 @@ export class PackagesService {
     private readonly planRepository: Repository<Plan>,
   ) {}
 
-  async onApplicationBootstrap() {
-    try {
-      await this.seedPlans();
-      this.logger.log('Plans seeded/updated successfully');
-    } catch (err) {
-      this.logger.error('Failed to seed plans', err);
-    }
-  }
+  // async onApplicationBootstrap() {
+  //   try {
+  //     await this.seedPlans();
+  //     this.logger.log('Plans seeded/updated successfully');
+  //   } catch (err) {
+  //     this.logger.error('Failed to seed plans', err);
+  //   }
+  // }
 
   async getAllPackages(): Promise<Record<string, PublicPlan[]>> {
     const plans = await this.planRepository.find({
@@ -296,6 +296,5 @@ export class PackagesService {
         await this.planRepository.save(planData);
       }
     }
-    this.logger.log('Plans seeded/updated successfully');
   }
 }

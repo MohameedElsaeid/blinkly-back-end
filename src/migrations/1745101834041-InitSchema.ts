@@ -108,6 +108,64 @@ export class InitSchema1745101834041 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "public"."webhook_endpoints" ADD CONSTRAINT "FK_fd866edd4a9cf92aec0901ce4dc" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
+    await queryRunner.query(`
+      INSERT INTO "public"."plans"
+              ("id", "name", "billingFrequency", "price", "description",
+               "features", "shortenedLinksLimit", "qrCodesLimit",
+               "freeTrialAvailable", "freeTrialDays", "isMostPopular")
+      VALUES
+        -- monthly
+        (uuid_generate_v4(), 'FREE',         'monthly',  0,    'Basic link shortening for personal use',
+         '10 shortened links/month\n2 QR codes/month\nCommunity support',
+         10,  2,  FALSE, NULL, FALSE),
+      
+        (uuid_generate_v4(), 'BASIC',        'monthly',  900,  'For creators and small businesses',
+         '500 shortened links/month\n50 QR codes/month\nAdvanced analytics\nPassword-protected links\nEmail support',
+         500, 50, TRUE, 7, FALSE),
+      
+        (uuid_generate_v4(), 'PROFESSIONAL', 'monthly',  2900, 'Advanced features for teams',
+         '5000 shortened links/month\n500 QR codes/month\nAdvanced analytics\nPassword‑protected links\nCustom domains\nTeam access (Up to 5)\nPriority email support',
+         5000, 500, TRUE, 7, TRUE),
+      
+        (uuid_generate_v4(), 'BUSINESS',     'monthly',  7900, 'Complete solution for organizations',
+         '20000 shortened links/month\n2000 QR codes/month\nAdvanced analytics\nPassword-protected links\nCustom domains\nTeam access (Up to 20)\nPriority + Live Chat support',
+         20000, 2000, TRUE, 7, FALSE),
+      
+        (uuid_generate_v4(), 'ENTERPRISE',   'monthly',  NULL, 'Tailored solutions for large enterprises',
+         'Unlimited shortened links/month\nUnlimited QR codes/month\nAdvanced analytics\nPassword-protected links\nCustom domains\nTeam access (Unlimited)\n24/7 Dedicated support',
+         NULL, NULL, FALSE, NULL, FALSE),
+      
+        -- yearly
+        (uuid_generate_v4(), 'FREE',         'yearly',   0,     'Basic link shortening for personal use',
+         '10 shortened links/month\n2 QR codes/month\nCommunity support',
+         10,  2,  FALSE, NULL, FALSE),
+      
+        (uuid_generate_v4(), 'BASIC',        'yearly',   9000,  'For creators and small businesses',
+         '500 shortened links/month\n50 QR codes/month\nAdvanced analytics\nPassword-protected links\nEmail support',
+         500, 50, TRUE, 7, FALSE),
+      
+        (uuid_generate_v4(), 'PROFESSIONAL', 'yearly',   29000, 'Advanced features for teams',
+         '5000 shortened links/month\n500 QR codes/month\nAdvanced analytics\nPassword‑protected links\nCustom domains\nTeam access (Up to 5)\nPriority email support',
+         5000, 500, TRUE, 7, TRUE),
+      
+        (uuid_generate_v4(), 'BUSINESS',     'yearly',   79000, 'Complete solution for organizations',
+         '20000 shortened links/month\n2000 QR codes/month\nAdvanced analytics\nPassword-protected links\nCustom domains\nTeam access (Up to 20)\nPriority + Live Chat support',
+         20000, 2000, TRUE, 7, FALSE),
+      
+        (uuid_generate_v4(), 'ENTERPRISE',   'yearly',   NULL,  'Tailored solutions for large enterprises',
+         'Unlimited shortened links/month\nUnlimited QR codes/month\nAdvanced analytics\nPassword-protected links\nCustom domains\nTeam access (Unlimited)\n24/7 Dedicated support',
+         NULL, NULL, FALSE, NULL, FALSE)
+      ON CONFLICT ("name","billingFrequency") DO UPDATE
+      SET  "price"               = excluded."price",
+           "description"         = excluded."description",
+           "features"            = excluded."features",
+           "shortenedLinksLimit" = excluded."shortenedLinksLimit",
+           "qrCodesLimit"        = excluded."qrCodesLimit",
+           "freeTrialAvailable"  = excluded."freeTrialAvailable",
+           "freeTrialDays"       = excluded."freeTrialDays",
+           "isMostPopular"       = excluded."isMostPopular",
+           "updatedAt"           = now();
+    `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

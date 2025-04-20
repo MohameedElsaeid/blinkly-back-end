@@ -4,6 +4,11 @@ export class InitSchema1745101834041 implements MigrationInterface {
   name = 'InitSchema1745101834041';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
+        ALTER TABLE "user_devices" 
+        ADD CONSTRAINT "UQ_user_devices_user_deviceId_xDeviceId" 
+        UNIQUE ("userId", "deviceId", "xDeviceId")
+    `);
     await queryRunner.query(
       `CREATE TABLE "public"."visits" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL, "userId" uuid, "userDeviceId" uuid NOT NULL, "host" character varying, "cfRay" character varying, "requestTime" TIMESTAMP WITH TIME ZONE, "xDeviceMemory" integer, "requestId" character varying, "acceptEncoding" character varying, "xPlatform" character varying, "xForwardedProto" character varying, "xLanguage" character varying, "cfVisitorScheme" character varying, "cfIpCountry" character varying, "geoCountry" character varying, "geoCity" character varying, "geoLatitude" numeric(9,6), "geoLongitude" numeric(9,6), "xFbClickId" character varying, "xFbBrowserId" character varying, "cfConnectingO2O" character varying, "contentLength" integer, "xForwardedFor" character varying, "xXsrfToken" character varying, "xUserAgent" character varying, "xTimeZone" character varying, "xScreenWidth" integer, "xScreenHeight" integer, "xRequestedWith" character varying, "contentType" character varying, "cfEwVia" character varying, "cdnLoop" character varying, "acceptLanguage" character varying, "accept" character varying, "cacheControl" character varying, "referer" character varying, "userAgent" character varying, "cfConnectingIp" character varying, "deviceId" character varying, "dnt" character varying, "origin" character varying, "priority" character varying, "secChUa" character varying, "secChUaMobile" character varying, "secChUaPlatform" character varying, "secFetchDest" character varying, "secFetchMode" character varying, "secFetchSite" character varying, "xClientFeatures" character varying, "xColorDepth" integer, "xCsrfToken" character varying, "xCustomHeader" character varying, "xDeviceId" character varying, "doConnectingIp" character varying, "browser" character varying, "browserVersion" character varying, "os" character varying, "osVersion" character varying, "device" character varying, "deviceType" character varying, "queryParams" jsonb, CONSTRAINT "PK_0b0b322289a41015c6ea4e8bf30" PRIMARY KEY ("id"))`,
     );
@@ -54,9 +59,6 @@ export class InitSchema1745101834041 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "public"."visits" ADD CONSTRAINT "FK_28f19616757b505532162fd6e75" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "public"."visits" ADD CONSTRAINT uq_user_devices_user_device UNIQUE ("userId", "deviceId", "xDeviceId")`,
     );
     await queryRunner.query(
       `ALTER TABLE "public"."visits" ADD CONSTRAINT "FK_8c53188ba68a6aa25af8af85407" FOREIGN KEY ("userDeviceId") REFERENCES "public"."user_devices"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,

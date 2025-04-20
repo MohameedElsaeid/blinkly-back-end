@@ -150,6 +150,7 @@ export class SignupService {
   ): Promise<UserDevice[]> {
     const result = await manager.getRepository(UserDevice).upsert(
       {
+        userId: user.id, // Using relation
         deviceId: headerData.deviceId,
         xDeviceId: headerData.xDeviceId ?? null,
         xDeviceMemory: headerData.xDeviceMemory ?? null,
@@ -158,7 +159,6 @@ export class SignupService {
         xScreenHeight: headerData.xScreenHeight ?? null,
         xColorDepth: headerData.xColorDepth ?? null,
         xTimeZone: headerData.xTimeZone ?? null,
-        user: { id: user.id }, // Using relation
       },
       ['userId', 'deviceId', 'xDeviceId'],
     );

@@ -50,7 +50,7 @@ async function bootstrap(): Promise<void> {
       'X-Hardware-Concurrency',
       'X-Device-Memory',
       'X-Custom-Header',
-      'X-FB-Browser-ID',
+      'x-fb-browser-id',
       'X-FB-Click-ID',
       'Device-Id',
       'Priority',

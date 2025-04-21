@@ -13,26 +13,6 @@ async function bootstrap(): Promise<void> {
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   app.use(cookieParser());
-  // app.use((req, res, next) => {
-  //   if (req.method === 'OPTIONS') {
-  //     res.header(
-  //       'Access-Control-Allow-Origin',
-  //       isProd ? 'https://blinkly.app' : '*',
-  //     );
-  //     res.header(
-  //       'Access-Control-Allow-Methods',
-  //       'GET, POST, OPTIONS, PUT, DELETE',
-  //     );
-  //     res.header(
-  //       'Access-Control-Allow-Headers',
-  //       req.header('Access-Control-Request-Headers'),
-  //     );
-  //     res.header('Access-Control-Max-Age', '86400');
-  //     return res.sendStatus(204);
-  //   }
-  //   next();
-  // });
-
   app.use(
     helmet({
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
@@ -100,134 +80,136 @@ async function bootstrap(): Promise<void> {
         ]
       : true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'content-type',
+    allowedHeaders: ['*'],
 
-      'Authorization',
-      'authorization',
-
-      'X-csrf-token',
-      'x-csrf-token',
-
-      'X-Request-ID',
-      'x-request-id',
-
-      'X-Request-Time',
-      'x-request-time',
-
-      'DNT',
-      'dnt',
-
-      'Sec-Ch-Ua',
-      'sec-ch-ua',
-
-      'Sec-Ch-Ua-Mobile',
-      'sec-ch-ua-mobile',
-
-      'Sec-Ch-Ua-Platform',
-      'sec-ch-ua-platform',
-
-      'X-requested-with',
-      'x-requested-with',
-
-      'CF-IPCountry',
-      'cf-ipcountry',
-
-      'CF-Ray',
-      'cf-ray',
-
-      'CF-Visitor',
-      'cf-visitor',
-
-      'CF-Device-Type',
-      'cf-device-type',
-
-      'CF-Metro-Code',
-      'cf-metro-code',
-
-      'CF-Region',
-      'cf-region',
-
-      'CF-Region-Code',
-      'cf-region-code',
-
-      'CF-Connecting-IP',
-      'cf-connecting-ip',
-
-      'CF-IPCity',
-      'cf-ipcity',
-
-      'xGeoData',
-      'xgeodata',
-      'x-geo-data',
-
-      'CF-IPContinent',
-      'cf-ipcontinent',
-
-      'CF-IPLatitude',
-      'cf-iplatitude',
-
-      'CF-IPLongitude',
-      'cf-iplongitude',
-
-      'CF-IPTimeZone',
-      'cf-iptimezone',
-
-      'X-forward-cloudflare-headers',
-      'x-forward-cloudflare-headers',
-
-      'X-User-Agent',
-      'x-user-agent',
-
-      'X-Language',
-      'x-language',
-
-      'X-Platform',
-      'x-platform',
-
-      'X-Screen-Width',
-      'x-screen-width',
-
-      'X-Screen-Height',
-      'x-screen-height',
-
-      'X-Time-Zone',
-      'x-time-zone',
-
-      'X-Color-Depth',
-      'x-color-depth',
-
-      'X-Hardware-Concurrency',
-      'x-hardware-concurrency',
-
-      'X-Device-Memory',
-      'x-device-memory',
-
-      'X-Custom-Header',
-      'x-custom-header',
-
-      'X-FB-Browser-ID',
-      'x-fb-browser-id',
-
-      'X-FB-Click-ID',
-      'x-fb-click-id',
-
-      'X-XSRF-TOKEN',
-      'x-xsrf-token',
-
-      'Device-ID',
-      'device-id',
-
-      'Priority',
-      'priority',
-
-      'X-xsrf-token',
-      'x-xsrf-token',
-
-      'Cookie',
-      'cookie',
-    ],
+    // allowedHeaders: [
+    //   'Content-Type',
+    //   'content-type',
+    //
+    //   'Authorization',
+    //   'authorization',
+    //
+    //   'X-csrf-token',
+    //   'x-csrf-token',
+    //
+    //   'X-Request-ID',
+    //   'x-request-id',
+    //
+    //   'X-Request-Time',
+    //   'x-request-time',
+    //
+    //   'DNT',
+    //   'dnt',
+    //
+    //   'Sec-Ch-Ua',
+    //   'sec-ch-ua',
+    //
+    //   'Sec-Ch-Ua-Mobile',
+    //   'sec-ch-ua-mobile',
+    //
+    //   'Sec-Ch-Ua-Platform',
+    //   'sec-ch-ua-platform',
+    //
+    //   'X-requested-with',
+    //   'x-requested-with',
+    //
+    //   'CF-IPCountry',
+    //   'cf-ipcountry',
+    //
+    //   'CF-Ray',
+    //   'cf-ray',
+    //
+    //   'CF-Visitor',
+    //   'cf-visitor',
+    //
+    //   'CF-Device-Type',
+    //   'cf-device-type',
+    //
+    //   'CF-Metro-Code',
+    //   'cf-metro-code',
+    //
+    //   'CF-Region',
+    //   'cf-region',
+    //
+    //   'CF-Region-Code',
+    //   'cf-region-code',
+    //
+    //   'CF-Connecting-IP',
+    //   'cf-connecting-ip',
+    //
+    //   'CF-IPCity',
+    //   'cf-ipcity',
+    //
+    //   'xGeoData',
+    //   'xgeodata',
+    //   'x-geo-data',
+    //
+    //   'CF-IPContinent',
+    //   'cf-ipcontinent',
+    //
+    //   'CF-IPLatitude',
+    //   'cf-iplatitude',
+    //
+    //   'CF-IPLongitude',
+    //   'cf-iplongitude',
+    //
+    //   'CF-IPTimeZone',
+    //   'cf-iptimezone',
+    //
+    //   'X-forward-cloudflare-headers',
+    //   'x-forward-cloudflare-headers',
+    //
+    //   'X-User-Agent',
+    //   'x-user-agent',
+    //
+    //   'X-Language',
+    //   'x-language',
+    //
+    //   'X-Platform',
+    //   'x-platform',
+    //
+    //   'X-Screen-Width',
+    //   'x-screen-width',
+    //
+    //   'X-Screen-Height',
+    //   'x-screen-height',
+    //
+    //   'X-Time-Zone',
+    //   'x-time-zone',
+    //
+    //   'X-Color-Depth',
+    //   'x-color-depth',
+    //
+    //   'X-Hardware-Concurrency',
+    //   'x-hardware-concurrency',
+    //
+    //   'X-Device-Memory',
+    //   'x-device-memory',
+    //
+    //   'X-Custom-Header',
+    //   'x-custom-header',
+    //
+    //   'X-FB-Browser-ID',
+    //   'x-fb-browser-id',
+    //
+    //   'X-FB-Click-ID',
+    //   'x-fb-click-id',
+    //
+    //   'X-XSRF-TOKEN',
+    //   'x-xsrf-token',
+    //
+    //   'Device-ID',
+    //   'device-id',
+    //
+    //   'Priority',
+    //   'priority',
+    //
+    //   'X-xsrf-token',
+    //   'x-xsrf-token',
+    //
+    //   'Cookie',
+    //   'cookie',
+    // ],
     exposedHeaders: [
       'Set-cookie',
       'set-cookie',

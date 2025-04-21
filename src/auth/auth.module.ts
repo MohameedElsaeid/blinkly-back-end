@@ -23,10 +23,8 @@ import { HeaderTransformPipe } from '../pipes/header‑transform.pipe';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
-        secret:
-          configService.get<string>('JWT_SECRET') ||
-          'pI4JjN2LmnX9b7A3TzcM5qL8C2FdR3Gh',
+      useFactory: () => ({
+        secret: process.env.JWT_SECRET || 'pI4JjN2LmnX9b7A3TzcM5qL8C2FdR3Gh',
         signOptions: { expiresIn: '1d' },
       }),
     }),

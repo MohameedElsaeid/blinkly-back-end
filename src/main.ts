@@ -14,6 +14,22 @@ async function bootstrap(): Promise<void> {
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   app.use(cookieParser());
+  app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      res.header('Access-Control-Allow-Origin', 'https://blinkly.app');
+      res.header(
+        'Access-Control-Allow-Methods',
+        'GET, POST, OPTIONS, PUT, DELETE',
+      );
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header(
+        'Access-Control-Allow-Headers',
+        'Origin, Content-Type, Accept, Authorization, X-CSRF-Token, X-XSRF-TOKEN, X-Requested-With, x-request-id, x-request-time, x-device-memory, x-platform, x-language, x-hardware-concurrency, x-color-depth, x-time-zone, x-screen-width, x-screen-height, x-custom-header, x-device-id, x-user-agent, x-client-features, x-xsrf-token, dnt, sec-ch-ua, sec-ch-ua-mobile, sec-ch-ua-platform, sec-fetch-dest, sec-fetch-mode, sec-fetch-site, referer, user-agent, accept-language, accept-encoding, accept, cache-control, priority, cookie',
+      );
+      return res.sendStatus(204);
+    }
+    next();
+  });
 
   app.use(
     helmet({
@@ -76,7 +92,50 @@ async function bootstrap(): Promise<void> {
         ]
       : true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: '*',
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-csrf-token',
+      'X-Request-ID',
+      'X-Request-Time',
+      'DNT',
+      'Sec-Ch-Ua',
+      'Sec-Ch-Ua-Mobile',
+      'Sec-Ch-Ua-Platform',
+      'x-requested-with',
+      'CF-IPCountry',
+      'CF-Ray',
+      'CF-Visitor',
+      'CF-Device-Type',
+      'CF-Metro-Code',
+      'CF-Region',
+      'CF-Region-Code',
+      'CF-Connecting-IP',
+      'CF-IPCity',
+      'CF-IPContinent',
+      'CF-IPLatitude',
+      'CF-IPLongitude',
+      'CF-IPTimeZone',
+      'x-forward-cloudflare-headers',
+      'X-User-Agent',
+      'X-Language',
+      'X-Platform',
+      'X-Screen-Width',
+      'X-Screen-Height',
+      'X-Time-Zone',
+      'X-Color-Depth',
+      'X-Hardware-Concurrency',
+      'X-Device-Memory',
+      'X-Custom-Header',
+      'X-FB-Browser-ID',
+      'X-FB-Click-ID',
+      'X-XSRF-TOKEN',
+      'Device-ID',
+      'Priority',
+      'x-xsrf-token',
+      'x-csrf-token',
+      'cookie',
+    ],
     exposedHeaders: [
       'set-cookie',
       'x-csrf-token',
@@ -156,7 +215,7 @@ async function bootstrap(): Promise<void> {
     );
   }
 
-  const port = process.env.PORT || 5147;
+  const port = process.env.PORT || 3000;
   await app.listen(port, () => {
     console.log(
       `Server running in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`,

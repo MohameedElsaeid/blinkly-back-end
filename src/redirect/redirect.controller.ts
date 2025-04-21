@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
-import { RedirectService } from './redirect.module';
+import { RedirectService } from './redirect.service';
 import { RedirectResponse } from './interfaces/redirect.interface';
 
 @ApiTags('Redirect')

@@ -23,7 +23,7 @@ import { Plan } from './entities/plan.entity';
 import { UserSubscription } from './entities/user-subscription.entity';
 import { PackagesModule } from './packages/packages.module';
 import { PaymentsModule } from './payments/payments.module';
-import { RedirectModule } from './redirect/redirect.service';
+import { RedirectModule } from './redirect/redirect.module';
 import { VisitorModule } from './visitor/visitor.module';
 import { Visit } from './entities/visit.entity';
 import { DashboardModule } from './dashboard/dashboard.module';

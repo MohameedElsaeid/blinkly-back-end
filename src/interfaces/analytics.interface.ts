@@ -18,31 +18,31 @@ export interface CountryMetric {
 export interface IClickData {
   ipAddress: string;
   userAgent: string;
-  referrer?: string;
-  country?: string;
-  state?: string;
-  city?: string;
-  latitude?: number;
-  longitude?: number;
-  sessionId?: string;
-  utmSource?: string;
-  utmMedium?: string;
-  utmCampaign?: string;
-  utmTerm?: string;
-  utmContent?: string;
+  referrer: string;
+  country: string;
+  state: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+  sessionId: string;
+  utmSource: string;
+  utmMedium: string;
+  utmCampaign: string;
+  utmTerm: string;
+  utmContent: string;
   // Cloudflare headers
-  cfRay?: string;
-  cfVisitor?: string;
-  cfDeviceType?: string;
-  cfMetroCode?: string;
-  cfRegion?: string;
-  cfRegionCode?: string;
-  cfConnectingIp?: string;
-  cfIpCity?: string;
-  cfIpContinent?: string;
-  cfIpLatitude?: string;
-  cfIpLongitude?: string;
-  cfIpTimeZone?: string;
+  cfRay: string;
+  cfVisitor: string;
+  cfDeviceType: string;
+  cfMetroCode: string;
+  cfRegion: string;
+  cfRegionCode: string;
+  cfConnectingIp: string;
+  cfIpCity: string;
+  cfIpContinent: string;
+  cfIpLatitude: string;
+  cfIpLongitude: string;
+  cfIpTimeZone: string;
 }
 
 export interface IAnalyticsOverview {

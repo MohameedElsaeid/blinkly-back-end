@@ -47,11 +47,12 @@ const redisStoreFactory: any = redisStore;
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get<string>('database.host'),
-        port: configService.get<number>('database.port'),
-        username: configService.get<string>('database.username'),
-        password: configService.get<string>('database.password'),
-        database: configService.get<string>('database.name'),
+        host: process.env.DATABASE_HOST,
+        port: parseInt(process.env.DATABASE_PORT || '5432', 10),
+        username: process.env.DATABASE_USERNAME,
+        password: process.env.DATABASE_PASSWORD,
+        database: process.env.DATABASE_NAME,
+        schema: process.env.DATABASE_SCHEMA || 'public',
         entities: [
           User,
           Link,
@@ -68,10 +69,11 @@ const redisStoreFactory: any = redisStore;
         ],
         migrations: [__dirname + '/../migrations/*.js'],
         synchronize: configService.get<boolean>('database.synchronize'),
-        logging: configService.get<boolean>('database.logging'),
-        ssl: configService.get<boolean>('database.ssl')
-          ? { rejectUnauthorized: false }
-          : false,
+        logging: false,
+        ssl:
+          process.env.DATABASE_SSL === 'true'
+            ? { rejectUnauthorized: false }
+            : false,
         poolSize: 20,
         extra: {
           max: 20,

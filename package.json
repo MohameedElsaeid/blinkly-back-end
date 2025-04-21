@@ -17,7 +17,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "migration:run": "npx typeorm migration:run --dataSource dist/config/typeorm.config.js"
+    "migration:run": "npx typeorm migration:run --dataSource dist/config/typeorm.config.js",
+    "migration:rollback": "npx typeorm migration:revert --dataSource dist/config/typeorm.config.js"
   },
   "dependencies": {
     "@nestjs/bull": "^11.0.2",

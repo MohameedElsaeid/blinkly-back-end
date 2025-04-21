@@ -75,7 +75,7 @@ export class CreateLinkDto {
     description: 'Meta image URL for social media previews',
   })
   @IsOptional()
-  @ValidateIf((o) => o.metaImage !== '')
+  @ValidateIf((o) => o.expiresAt !== undefined && o.expiresAt !== '')
   @IsUrl()
   metaImage?: string;
 

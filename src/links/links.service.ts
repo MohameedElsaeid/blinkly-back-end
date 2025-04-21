@@ -229,6 +229,7 @@ export class LinksService {
 
       const link = this.linkRepository.create({
         ...createLinkDto,
+        expiresAt: createLinkDto.expiresAt || null,
         alias,
         user,
         redirectType: createLinkDto.redirectType || RedirectType.TEMPORARY,

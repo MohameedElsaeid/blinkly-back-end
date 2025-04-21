@@ -15,16 +15,19 @@ async function bootstrap(): Promise<void> {
   app.use(cookieParser());
   app.use((req, res, next) => {
     if (req.method === 'OPTIONS') {
-      res.header('Access-Control-Allow-Origin', 'https://blinkly.app');
+      res.header(
+        'Access-Control-Allow-Origin',
+        isProd ? 'https://blinkly.app' : '*',
+      );
       res.header(
         'Access-Control-Allow-Methods',
         'GET, POST, OPTIONS, PUT, DELETE',
       );
-      res.header('Access-Control-Allow-Credentials', 'true');
       res.header(
         'Access-Control-Allow-Headers',
-        'Origin, Content-Type, Accept, Authorization, X-CSRF-Token, X-XSRF-TOKEN, X-Requested-With, x-request-id, x-request-time, x-device-memory, x-platform, x-language, x-hardware-concurrency, x-color-depth, x-time-zone, x-screen-width, x-screen-height, x-custom-header, x-device-id, x-user-agent, x-client-features, x-xsrf-token, dnt, sec-ch-ua, sec-ch-ua-mobile, sec-ch-ua-platform, sec-fetch-dest, sec-fetch-mode, sec-fetch-site, referer, user-agent, accept-language, accept-encoding, accept, cache-control, priority, cookie',
+        req.header('Access-Control-Request-Headers'),
       );
+      res.header('Access-Control-Max-Age', '86400');
       return res.sendStatus(204);
     }
     next();
@@ -48,7 +51,13 @@ async function bootstrap(): Promise<void> {
                 'https://cdn.gpteng.co',
                 'https:',
               ],
-              connectSrc: ["'self'", 'https:', 'wss:'],
+              connectSrc: [
+                "'self'",
+                'https:',
+                'wss:',
+                'https://api.blinkly.app',
+                'https://blinkly.app',
+              ],
               imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
               styleSrc: [
                 "'self'",

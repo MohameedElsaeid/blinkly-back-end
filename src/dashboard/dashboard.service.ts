@@ -328,64 +328,68 @@ export class DashboardService {
   }
 
   async getDashboardAnalytics(userId: string): Promise<DashboardAnalytics> {
-    const now = new Date();
-    const today = new Date(now.setHours(0, 0, 0, 0));
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const last24h = new Date(now);
-    last24h.setHours(last24h.getHours() - 24);
-    const previous24h = new Date(last24h);
-    previous24h.setHours(previous24h.getHours() - 24);
-    const sevenDaysAgo = new Date(now);
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    try {
+      const now = new Date();
+      const today = new Date(now.setHours(0, 0, 0, 0));
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const last24h = new Date(now);
+      last24h.setHours(last24h.getHours() - 24);
+      const previous24h = new Date(last24h);
+      previous24h.setHours(previous24h.getHours() - 24);
+      const sevenDaysAgo = new Date(now);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    // Get today's clicks
-    const [todayClicks, yesterdayClicks] = await Promise.all([
-      this.getClicksCount(userId, today, now),
-      this.getClicksCount(userId, yesterday, today),
-    ]);
+      const [
+        todayClicks,
+        yesterdayClicks,
+        links24h,
+        linksPrevious24h,
+        countries24h,
+        countriesPrevious24h,
+        ctr,
+      ] = await Promise.all([
+        this.getClicksCount(userId, today, now),
+        this.getClicksCount(userId, yesterday, today),
+        this.getLinksCreatedCount(userId, last24h, now),
+        this.getLinksCreatedCount(userId, previous24h, last24h),
+        this.getUniqueCountriesCount(userId, last24h, now),
+        this.getUniqueCountriesCount(userId, previous24h, last24h),
+        this.getAverageCTR(userId, sevenDaysAgo, now),
+      ]);
 
-    // Get links created in last 24h
-    const [links24h, linksPrevious24h] = await Promise.all([
-      this.getLinksCreatedCount(userId, last24h, now),
-      this.getLinksCreatedCount(userId, previous24h, last24h),
-    ]);
-
-    // Get unique countries in last 24h
-    const [countries24h, countriesPrevious24h] = await Promise.all([
-      this.getUniqueCountriesCount(userId, last24h, now),
-      this.getUniqueCountriesCount(userId, previous24h, last24h),
-    ]);
-
-    // Calculate 7-day CTR
-    const ctr = await this.getAverageCTR(userId, sevenDaysAgo, now);
-
-    return {
-      clicks_today: {
-        count: todayClicks,
-        change_percentage: this.calculateChangePercentage(
-          todayClicks,
-          yesterdayClicks,
-        ),
-      },
-      links_24h: {
-        count: links24h,
-        change_percentage: this.calculateChangePercentage(
-          links24h,
-          linksPrevious24h,
-        ),
-      },
-      unique_countries_24h: {
-        count: countries24h,
-        change_percentage: this.calculateChangePercentage(
-          countries24h,
-          countriesPrevious24h,
-        ),
-      },
-      avg_ctr_7d: {
-        percentage: ctr,
-      },
-    };
+      return {
+        clicks_today: {
+          count: todayClicks,
+          change_percentage: this.calculateChangePercentage(
+            todayClicks,
+            yesterdayClicks,
+          ),
+        },
+        links_24h: {
+          count: links24h,
+          change_percentage: this.calculateChangePercentage(
+            links24h,
+            linksPrevious24h,
+          ),
+        },
+        unique_countries_24h: {
+          count: countries24h,
+          change_percentage: this.calculateChangePercentage(
+            countries24h,
+            countriesPrevious24h,
+          ),
+        },
+        avg_ctr_7d: {
+          percentage: Math.round(ctr * 100) / 100,
+        },
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get dashboard analytics: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      throw error;
+    }
   }
 
   private async getClicksCount(
@@ -453,12 +457,12 @@ export class DashboardService {
     const totalClicks = links.reduce((sum, link) => sum + link.clickCount, 0);
     const totalLinks = links.length;
 
-    return (totalClicks / totalLinks) * 100;
+    return Math.round((totalClicks / totalLinks) * 100) / 100;
   }
 
   private calculateChangePercentage(current: number, previous: number): number {
     if (previous === 0) return current > 0 ? 100 : 0;
-    return ((current - previous) / previous) * 100;
+    return Math.round(((current - previous) / previous) * 100 * 100) / 100;
   }
 
   async getTotalClicks(userId: string): Promise<ITotalClicksResponse> {

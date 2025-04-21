@@ -20,15 +20,15 @@ interface Configuration {
 }
 
 export default (): Configuration => ({
-  port: Number(process.env.PORT) || 5147,
+  port: Number(process.env.PORT) || 3000,
   database: {
     type: 'postgres',
     host: process.env.DATABASE_HOST || 'localhost',
     port: Number(process.env.DATABASE_PORT) || 5432,
-    username: process.env.DATABASE_USERNAME || 'postgres',
+    username: process.env.DATABASE_USERNAME || 'blinkly_user',
     password: process.env.DATABASE_PASSWORD || 'postgres',
     database: process.env.DATABASE_NAME || 'blinkly_db',
-    schema: process.env.DATABASE_SCHEMA || 'blinkly_db',
+    schema: process.env.DATABASE_SCHEMA || 'public',
     synchronize: process.env.NODE_ENV !== 'production',
     logging: process.env.NODE_ENV !== 'production',
     ssl: process.env.DATABASE_SSL === 'true',

@@ -7,7 +7,7 @@ export default new DataSource({
   type: 'postgres',
   host: process.env.DATABASE_HOST || 'localhost',
   port: parseInt(process.env.DATABASE_PORT || '5432', 10),
-  username: process.env.DATABASE_USERNAME || 'postgres',
+  username: process.env.DATABASE_USERNAME || 'blinkly_user',
   database: process.env.DATABASE_NAME || 'blinkly_db',
   password: process.env.DATABASE_PASSWORD || 'postgres',
   schema: process.env.DATABASE_SCHEMA || 'public',

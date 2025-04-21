@@ -20,6 +20,7 @@ import {
   ExtendedInvoice,
   IStripeEventData,
 } from './interfaces/stripe.interface';
+import { FacebookService } from '../facebook/facebook.service';
 
 @Injectable()
 export class PaymentsService {
@@ -33,6 +34,7 @@ export class PaymentsService {
     @InjectRepository(Plan)
     private readonly planRepository: Repository<Plan>,
     private readonly stripeService: StripeService,
+    private readonly facebookService: FacebookService,
   ) {}
 
   async createPaymentIntent(userId: string, dto: CreatePaymentIntentDto) {
@@ -50,6 +52,14 @@ export class PaymentsService {
         dto.amount,
         dto.currency.toLowerCase(),
         customerId,
+      );
+
+      // Track Facebook event
+      await this.facebookService.trackInitiateCheckout(
+        user,
+        { referer: 'https://your-domain.com/checkout' },
+        dto.amount / 100,
+        dto.currency.toUpperCase(),
       );
 
       return {
@@ -121,6 +131,15 @@ export class PaymentsService {
       // Update user's active subscription.
       user.activeSubscription = userSubscription;
       await this.userRepository.save(user);
+
+      // Track Facebook event
+      await this.facebookService.trackSubscribe(
+        user,
+        { referer: 'https://blinkly.app/subscription' },
+        plan.name,
+        plan.price ? plan.price / 100 : 0,
+        'USD',
+      );
 
       return {
         subscriptionId: subscription.id,

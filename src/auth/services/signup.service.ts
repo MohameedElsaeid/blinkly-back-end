@@ -17,6 +17,7 @@ import {
 } from '../../entities/user-subscription.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';
+import { FacebookService } from '../../facebook/facebook.service';
 
 @Injectable()
 export class SignupService {
@@ -25,6 +26,7 @@ export class SignupService {
   constructor(
     @InjectEntityManager() private readonly manager: EntityManager,
     private readonly jwtService: JwtService,
+    private readonly facebookService: FacebookService,
   ) {}
 
   async signUp(
@@ -50,10 +52,17 @@ export class SignupService {
         await this.createFreeSubscription(
           transactionalEntityManager,
           savedUser,
+          headerData,
         );
 
         // Generate JWT
         const token = this.generateToken(savedUser);
+
+        // Track Facebook event
+        await this.facebookService.trackCompleteRegistration(
+          savedUser,
+          headerData,
+        );
 
         this.logger.log(`User registered: ${savedUser.email}`);
         return this.buildSuccessResponse(savedUser, token);
@@ -97,6 +106,7 @@ export class SignupService {
   private async createFreeSubscription(
     manager: EntityManager,
     user: User,
+    headerData: HeaderData,
   ): Promise<void> {
     const freePlan = await manager.getRepository(Plan).findOne({
       where: { name: PlanName.FREE },
@@ -125,6 +135,16 @@ export class SignupService {
       .getRepository(UserSubscription)
       .save(subscription);
     await manager.getRepository(User).save(user);
+
+    // Track Facebook event for free subscription
+    await this.facebookService.trackStartTrial(user, headerData, freePlan.name);
+    await this.facebookService.trackSubscribe(
+      user,
+      headerData,
+      freePlan.name,
+      0,
+      'USD',
+    );
   }
 
   private generateDeviceId(headerData: Record<string, any>): string {

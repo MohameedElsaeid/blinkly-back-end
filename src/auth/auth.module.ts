@@ -13,6 +13,7 @@ import { Plan } from '../entities/plan.entity';
 import { VisitorModule } from '../visitor/visitor.module';
 import { SignupService } from './services/signup.service';
 import { HeaderTransformPipe } from '../pipes/header‑transform.pipe';
+import { FacebookModule } from '../facebook/facebook.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { HeaderTransformPipe } from '../pipes/header‑transform.pipe';
     PassportModule,
     ConfigModule,
     VisitorModule,
+    FacebookModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

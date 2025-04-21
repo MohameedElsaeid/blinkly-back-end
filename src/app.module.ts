@@ -36,10 +36,7 @@ const redisStoreFactory: any = redisStore;
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath:
-        process.env.NODE_ENV === 'production'
-          ? '.env.production'
-          : '.env.development',
+      envFilePath: '.env',
       load: [configuration],
       validationSchema,
       validationOptions: {

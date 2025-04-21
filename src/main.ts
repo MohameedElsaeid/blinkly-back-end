@@ -6,7 +6,6 @@ import * as cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
 import { NextFunction, Request, Response } from 'express';
-import { User } from './entities/user.entity';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bodyParser: true });
@@ -77,50 +76,7 @@ async function bootstrap(): Promise<void> {
         ]
       : true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'x-csrf-token',
-      'X-Request-ID',
-      'X-Request-Time',
-      'DNT',
-      'Sec-Ch-Ua',
-      'Sec-Ch-Ua-Mobile',
-      'Sec-Ch-Ua-Platform',
-      'x-requested-with',
-      'CF-IPCountry',
-      'CF-Ray',
-      'CF-Visitor',
-      'CF-Device-Type',
-      'CF-Metro-Code',
-      'CF-Region',
-      'CF-Region-Code',
-      'CF-Connecting-IP',
-      'CF-IPCity',
-      'CF-IPContinent',
-      'CF-IPLatitude',
-      'CF-IPLongitude',
-      'CF-IPTimeZone',
-      'x-forward-cloudflare-headers',
-      'X-User-Agent',
-      'X-Language',
-      'X-Platform',
-      'X-Screen-Width',
-      'X-Screen-Height',
-      'X-Time-Zone',
-      'X-Color-Depth',
-      'X-Hardware-Concurrency',
-      'X-Device-Memory',
-      'X-Custom-Header',
-      'X-FB-Browser-ID',
-      'X-FB-Click-ID',
-      'X-XSRF-TOKEN',
-      'Device-ID',
-      'Priority',
-      'x-xsrf-token',
-      'x-csrf-token',
-      'cookie',
-    ],
+    allowedHeaders: '*',
     exposedHeaders: [
       'set-cookie',
       'x-csrf-token',

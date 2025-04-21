@@ -1,9 +1,13 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseUUIDPipe,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -22,6 +26,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { GetLinksDto } from './dto/get-links.dto';
 
 @ApiTags('Links')
 @ApiBearerAuth()
@@ -29,6 +34,45 @@ import {
 @Controller('api')
 export class LinksController {
   constructor(private readonly linksService: LinksService) {}
+
+  @Get('links')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get all links with pagination' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of links with pagination info',
+  })
+  async getLinks(
+    @Req() req: IAuthenticatedRequest,
+    @Query() query: GetLinksDto,
+  ) {
+    return await this.linksService.getLinks(req.user.id, query);
+  }
+
+  @Get('links/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get link by ID with detailed analytics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Link details with analytics',
+  })
+  async getLinkById(
+    @Req() req: IAuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{
+    id: string;
+    // include all other Link properties here
+    analytics: {
+      totalClicks: number;
+      clicksByCountry: Record<string, number>;
+      clicksByBrowser: Record<string, number>;
+      clicksByDevice: Record<string, number>;
+      clicksByDate: Record<string, number>;
+      recentClicks: any[]; // or use a proper ClickEvent type
+    };
+  }> {
+    return await this.linksService.getLinkById(req.user.id, id);
+  }
 
   @Post('links')
   @HttpCode(HttpStatus.CREATED)

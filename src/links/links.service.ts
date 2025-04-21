@@ -16,28 +16,20 @@ import { User } from '../entities/user.entity';
 import { CreateLinkDto } from './dto/create-link.dto';
 import { CreateDynamicLinkDto } from './dto/create-dynamic-link.dto';
 import { PlanName } from '../entities/plan.entity';
+import { GetLinksDto } from './dto/get-links.dto';
 
 const nanoid = customAlphabet(
   '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
   8,
 );
 
-interface IAnalyticsResponse {
+interface LinkAnalytics {
   totalClicks: number;
+  clicksByCountry: Record<string, number>;
+  clicksByBrowser: Record<string, number>;
+  clicksByDevice: Record<string, number>;
   clicksByDate: Record<string, number>;
-  browsers?: Record<string, number>;
-  operatingSystems?: Record<string, number>;
-  countries?: Record<string, number>;
-  referrers?: Record<string, number>;
-  utmSources?: Record<string, number>;
-  devices?: Record<string, number>;
-}
-
-interface IPaginationOptions {
-  page: number;
-  limit: number;
-  sortBy: string;
-  sortOrder: 'ASC' | 'DESC';
+  recentClicks: ClickEvent[];
 }
 
 @Injectable()
@@ -57,29 +49,140 @@ export class LinksService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async getUserLinks(userId: string, options: IPaginationOptions) {
+  async getLinks(userId: string, query: GetLinksDto) {
     try {
       const [links, total] = await this.linkRepository.findAndCount({
         where: { user: { id: userId } },
         relations: ['clickEvents'],
-        order: { [options.sortBy]: options.sortOrder },
-        skip: (options.page - 1) * options.limit,
-        take: options.limit,
+        order: {
+          [query.sortBy]: query.sortOrder,
+        },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
       });
 
+      const linksWithBasicStats = await Promise.all(
+        links.map(async (link) => {
+          const analytics = await this.getBasicAnalytics(link);
+          return {
+            id: link.id,
+            originalUrl: link.originalUrl,
+            alias: link.alias,
+            isActive: link.isActive,
+            tags: link.tags,
+            clickCount: link.clickCount,
+            redirectType: link.redirectType,
+            expiresAt: link.expiresAt,
+            createdAt: link.createdAt,
+            updatedAt: link.updatedAt,
+            analytics,
+          };
+        }),
+      );
+
       return {
-        links,
+        links: linksWithBasicStats,
         pagination: {
           total,
-          page: options.page,
-          limit: options.limit,
-          totalPages: Math.ceil(total / options.limit),
+          page: query.page,
+          limit: query.limit,
+          totalPages: Math.ceil(total / query.limit),
         },
       };
     } catch (error) {
-      this.logger.error(`Failed to get user links: ${error.message}`);
+      this.logger.error(`Failed to get links: ${error.message}`);
       throw new InternalServerErrorException('Failed to retrieve links');
     }
+  }
+
+  async getLinkById(userId: string, linkId: string) {
+    try {
+      const link = await this.linkRepository.findOne({
+        where: { id: linkId, user: { id: userId } },
+        relations: ['clickEvents'],
+      });
+
+      if (!link) {
+        throw new NotFoundException('Link not found');
+      }
+
+      const analytics = await this.getDetailedAnalytics(link);
+
+      return {
+        ...link,
+        analytics,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get link: ${error.message}`);
+      throw error;
+    }
+  }
+
+  private async getBasicAnalytics(link: Link) {
+    const recentClicks = await this.clickEventRepository.find({
+      where: { link: { id: link.id } },
+      order: { timestamp: 'DESC' },
+      take: 5,
+    });
+
+    return {
+      totalClicks: link.clickCount,
+      recentClicks,
+    };
+  }
+
+  private async getDetailedAnalytics(link: Link): Promise<LinkAnalytics> {
+    const clicks = await this.clickEventRepository.find({
+      where: { link: { id: link.id } },
+      order: { timestamp: 'DESC' },
+    });
+
+    const clicksByCountry = this.groupClicksByField(clicks, 'geoCountry');
+    const clicksByBrowser = this.groupClicksByField(clicks, 'userAgent');
+    const clicksByDevice = this.groupClicksByField(clicks, 'userAgent', (ua) =>
+      this.parseDeviceType(ua),
+    );
+    const clicksByDate = this.groupClicksByDate(clicks);
+
+    return {
+      totalClicks: clicks.length,
+      clicksByCountry,
+      clicksByBrowser,
+      clicksByDevice,
+      clicksByDate,
+      recentClicks: clicks.slice(0, 5),
+    };
+  }
+
+  private groupClicksByDate(clicks: ClickEvent[]): Record<string, number> {
+    return clicks.reduce(
+      (acc, click) => {
+        if (click.timestamp) {
+          const date = new Date(click.timestamp).toISOString().split('T')[0];
+          acc[date] = (acc[date] || 0) + 1;
+        }
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+  }
+
+  private groupClicksByField(
+    clicks: ClickEvent[],
+    field: keyof ClickEvent,
+    transform?: (value: string) => string,
+  ): Record<string, number> {
+    return clicks.reduce(
+      (acc, click) => {
+        let value = (click[field] as string) || 'Unknown';
+        if (transform) {
+          value = transform(value);
+        }
+        acc[value] = (acc[value] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
   }
 
   private calculateClicksByMetric(
@@ -217,6 +320,21 @@ export class LinksService {
     }
 
     return user;
+  }
+
+  private parseDeviceType(userAgent: string): string {
+    const ua = userAgent.toLowerCase();
+    if (
+      ua.includes('mobile') ||
+      ua.includes('android') ||
+      ua.includes('iphone')
+    ) {
+      return 'Mobile';
+    }
+    if (ua.includes('tablet') || ua.includes('ipad')) {
+      return 'Tablet';
+    }
+    return 'Desktop';
   }
 
   private async validateAlias(alias: string): Promise<void> {

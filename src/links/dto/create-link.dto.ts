@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  ValidateIf,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { RedirectType } from '../../entities/link.entity';
@@ -49,8 +50,9 @@ export class CreateLinkDto {
     description: 'Expiration date and time for the short link',
   })
   @IsOptional()
+  @ValidateIf((o) => o.expiresAt !== '')
   @IsDateString()
-  expiresAt?: Date;
+  expiresAt?: string;
 
   @ApiPropertyOptional({
     example: 'Big Sale!',
@@ -73,6 +75,7 @@ export class CreateLinkDto {
     description: 'Meta image URL for social media previews',
   })
   @IsOptional()
+  @ValidateIf((o) => o.metaImage !== '')
   @IsUrl()
   metaImage?: string;
 

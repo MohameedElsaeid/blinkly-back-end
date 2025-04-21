@@ -1,29 +1,29 @@
 import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
-import { AppModule } from './app.module';
 import { NextFunction, Request, Response } from 'express';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bodyParser: true });
   const isProd = process.env.NODE_ENV === 'production';
+  const httpLogger = new Logger('HTTP');
 
+  // 1) Trust proxy (Cloudflare)
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
+  // 2) Enable CORS
   app.enableCors({
-    origin: isProd
-      ? [
-          'https://blinkly.app',
-          'https://www.blinkly.app',
-          'https://api.blinkly.app',
-        ]
-      : true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    origin: isProd ? ['https://blinkly.app', 'https://www.blinkly.app'] : true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
     allowedHeaders: [
       'content-type',
       'authorization',
       'x-csrf-token',
+      'x-xsrf-token',
       'x-request-id',
       'x-request-time',
       'dnt',
@@ -56,9 +56,8 @@ async function bootstrap(): Promise<void> {
       'x-hardware-concurrency',
       'x-device-memory',
       'x-custom-header',
-      'x-fb-browser-id', // Explicitly allowed
+      'x-fb-browser-id',
       'x-fb-click-id',
-      'x-xsrf-token',
       'device-id',
       'priority',
       'cookie',
@@ -71,10 +70,10 @@ async function bootstrap(): Promise<void> {
       'xsrf-token',
       'cookie',
     ],
-    credentials: true,
     maxAge: 86400,
   });
-  app.use(cookieParser());
+
+  // 3) Security headers
   app.use(
     helmet({
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
@@ -93,39 +92,23 @@ async function bootstrap(): Promise<void> {
                 'https://cdn.gpteng.co',
                 'https:',
               ],
-              connectSrc: [
-                "'self'",
-                'https:',
-                'wss:',
-                'https://api.blinkly.app',
-                'https://blinkly.app',
-              ],
+              connectSrc: ["'self'", 'https:', 'wss:'],
               imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
               styleSrc: [
                 "'self'",
                 "'unsafe-inline'",
                 'https://fonts.googleapis.com',
-                'https:',
               ],
-              fontSrc: [
-                "'self'",
-                'https://fonts.gstatic.com',
-                'data:',
-                'https:',
-              ],
+              fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
               frameSrc: ["'self'", 'https:'],
               objectSrc: ["'none'"],
               formAction: ["'self'"],
-              upgradeInsecureRequests: isProd ? [] : null,
+              upgradeInsecureRequests: [],
             },
           }
         : false,
       hsts: isProd
-        ? {
-            maxAge: 31536000,
-            includeSubDomains: true,
-            preload: true,
-          }
+        ? { maxAge: 31_536_000, includeSubDomains: true, preload: true }
         : false,
       frameguard: { action: 'deny' },
       noSniff: true,
@@ -133,195 +116,10 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  // app.enableCors({
-  //   origin: isProd
-  //     ? [
-  //         'https://blinkly.app',
-  //         'https://www.blinkly.app',
-  //         'https://api.blinkly.app',
-  //       ]
-  //     : true,
-  //   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  //   allowedHeaders: [
-  //     'Content-Type',
-  //     'content-type',
-  //
-  //     'Authorization',
-  //     'authorization',
-  //
-  //     'X-csrf-token',
-  //     'x-csrf-token',
-  //
-  //     'X-Request-ID',
-  //     'x-request-id',
-  //
-  //     'X-Request-Time',
-  //     'x-request-time',
-  //
-  //     'DNT',
-  //     'dnt',
-  //
-  //     'Sec-Ch-Ua',
-  //     'sec-ch-ua',
-  //
-  //     'Sec-Ch-Ua-Mobile',
-  //     'sec-ch-ua-mobile',
-  //
-  //     'Sec-Ch-Ua-Platform',
-  //     'sec-ch-ua-platform',
-  //
-  //     'X-requested-with',
-  //     'x-requested-with',
-  //
-  //     'CF-IPCountry',
-  //     'cf-ipcountry',
-  //
-  //     'CF-Ray',
-  //     'cf-ray',
-  //
-  //     'CF-Visitor',
-  //     'cf-visitor',
-  //
-  //     'CF-Device-Type',
-  //     'cf-device-type',
-  //
-  //     'CF-Metro-Code',
-  //     'cf-metro-code',
-  //
-  //     'CF-Region',
-  //     'cf-region',
-  //
-  //     'CF-Region-Code',
-  //     'cf-region-code',
-  //
-  //     'CF-Connecting-IP',
-  //     'cf-connecting-ip',
-  //
-  //     'CF-IPCity',
-  //     'cf-ipcity',
-  //
-  //     'xGeoData',
-  //     'xgeodata',
-  //     'x-geo-data',
-  //
-  //     'CF-IPContinent',
-  //     'cf-ipcontinent',
-  //
-  //     'CF-IPLatitude',
-  //     'cf-iplatitude',
-  //
-  //     'CF-IPLongitude',
-  //     'cf-iplongitude',
-  //
-  //     'CF-IPTimeZone',
-  //     'cf-iptimezone',
-  //
-  //     'X-forward-cloudflare-headers',
-  //     'x-forward-cloudflare-headers',
-  //
-  //     'X-User-Agent',
-  //     'x-user-agent',
-  //
-  //     'X-Language',
-  //     'x-language',
-  //
-  //     'X-Platform',
-  //     'x-platform',
-  //
-  //     'X-Screen-Width',
-  //     'x-screen-width',
-  //
-  //     'X-Screen-Height',
-  //     'x-screen-height',
-  //
-  //     'X-Time-Zone',
-  //     'x-time-zone',
-  //
-  //     'X-Color-Depth',
-  //     'x-color-depth',
-  //
-  //     'X-Hardware-Concurrency',
-  //     'x-hardware-concurrency',
-  //
-  //     'X-Device-Memory',
-  //     'x-device-memory',
-  //
-  //     'X-Custom-Header',
-  //     'x-custom-header',
-  //
-  //     'X-FB-Browser-ID',
-  //     'x-fb-browser-id',
-  //
-  //     'X-FB-Click-ID',
-  //     'x-fb-click-id',
-  //
-  //     'X-XSRF-TOKEN',
-  //     'x-xsrf-token',
-  //
-  //     'Device-ID',
-  //     'device-id',
-  //
-  //     'Priority',
-  //     'priority',
-  //
-  //     'X-xsrf-token',
-  //     'x-xsrf-token',
-  //
-  //     'Cookie',
-  //     'cookie',
-  //   ],
-  //   exposedHeaders: [
-  //     'Set-cookie',
-  //     'set-cookie',
-  //
-  //     'X-csrf-token',
-  //     'x-csrf-token',
-  //
-  //     'X-Request-ID',
-  //     'x-request-id',
-  //
-  //     'X-Request-Time',
-  //     'x-request-time',
-  //
-  //     'XSRF-TOKEN',
-  //     'xsrf-token',
-  //
-  //     'Cookie',
-  //     'cookie',
-  //   ],
-  //   credentials: true,
-  //   maxAge: 86400,
-  // });
+  // 4) Cookie parser
+  app.use(cookieParser());
 
-  const httpLogger = new Logger('HTTP');
-
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    httpLogger.log(`Incoming Request User: ${req.user}`);
-
-    httpLogger.log(`Incoming Request: ${req.method} ${req.url}`);
-    // Log headers in a pretty format
-    httpLogger.debug(`Headers:\n${JSON.stringify(req.headers, null, 2)}`);
-    // Log params only if available
-    httpLogger.debug(`Params:\n${JSON.stringify(req.params, null, 2)}`);
-    next();
-  });
-
-  // Middleware to trust Cloudflare headers
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    req.headers['cf-connecting-ip'] =
-      req.headers['cf-connecting-ip'] ||
-      req.headers['x-forwarded-for'] ||
-      req.ip;
-
-    // Log all incoming Cloudflare headers for debugging
-    const cfHeaders = Object.entries(req.headers).filter(([key]) =>
-      key.toLowerCase().startsWith('cf-'),
-    );
-    httpLogger.debug(`Cloudflare Headers: ${JSON.stringify(cfHeaders)}`);
-
-    next();
-  });
-
+  // 5) Rate limiting (prod only)
   if (isProd) {
     app.use(
       rateLimit({
@@ -333,6 +131,7 @@ async function bootstrap(): Promise<void> {
     );
   }
 
+  // 6) Global validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -341,30 +140,40 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
+  // 7) Swagger (dev only)
   if (!isProd) {
     const { DocumentBuilder, SwaggerModule } = await import('@nestjs/swagger');
-    const swaggerConfig = new DocumentBuilder()
+    const config = new DocumentBuilder()
       .setTitle('Blinkly API')
       .setDescription('API Documentation')
       .setVersion('1.0')
       .addBearerAuth()
       .build();
-
-    SwaggerModule.setup(
-      'api',
-      app,
-      SwaggerModule.createDocument(app, swaggerConfig),
-    );
+    const doc = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, doc);
   }
 
-  const port = process.env.PORT || 3000;
-  await app.listen(port, () => {
-    console.log(
-      `Server running in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`,
-    );
-    console.log(`Listening on port ${port}`);
-    console.log(`CSRF Protection: ${isProd ? 'ENABLED' : 'TEST MODE'}`);
+  // 8) HTTP logging
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    httpLogger.log(`${req.method} ${req.url}`);
+    httpLogger.debug(JSON.stringify(req.headers, null, 2));
+    next();
   });
+
+  // 9) Trust Cloudflare headers
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    req.headers['cf-connecting-ip'] =
+      req.headers['cf-connecting-ip'] ||
+      (req.headers['x-forwarded-for'] as string) ||
+      req.ip;
+    next();
+  });
+
+  // 10) Start server
+  const port = process.env.PORT || 3000;
+  await app.listen(port, () =>
+    console.log(`Listening on ${port} (${isProd ? 'PROD' : 'DEV'})`),
+  );
 }
 
 void bootstrap();

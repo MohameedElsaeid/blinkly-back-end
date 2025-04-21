@@ -32,6 +32,9 @@ jobs:
 
             echo "⚙️ Building"
             npm run build
+            
+            echo "⚙️ Migrations"
+            npm run migration:run
 
             echo "🚀 Restarting API"
             pm2 restart blinkly-api || pm2 start dist/main.js --name blinkly-api

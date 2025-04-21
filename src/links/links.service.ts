@@ -62,8 +62,7 @@ export class LinksService {
       });
 
       const linksWithBasicStats = await Promise.all(
-        links.map(async (link) => {
-          const analytics = await this.getBasicAnalytics(link);
+        links.map((link) => {
           return {
             id: link.id,
             originalUrl: link.originalUrl,
@@ -75,7 +74,6 @@ export class LinksService {
             expiresAt: link.expiresAt,
             createdAt: link.createdAt,
             updatedAt: link.updatedAt,
-            analytics,
           };
         }),
       );
@@ -125,10 +123,7 @@ export class LinksService {
       take: 5,
     });
 
-    return {
-      totalClicks: link.clickCount,
-      recentClicks,
-    };
+    return link.clickCount ?? 0;
   }
 
   private async getDetailedAnalytics(link: Link): Promise<LinkAnalytics> {

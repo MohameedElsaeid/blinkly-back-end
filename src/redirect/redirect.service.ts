@@ -357,6 +357,11 @@ export class RedirectService {
     return {
       target: link.originalUrl,
       statusCode: link.redirectType,
+      user: {
+        subscription: {
+          plan: link.user?.activeSubscription?.plan?.name || 'FREE',
+        },
+      },
     };
   }
 
@@ -374,6 +379,11 @@ export class RedirectService {
     return {
       target: targetUrl,
       statusCode: 302,
+      user: {
+        subscription: {
+          plan: dynamicLink.user?.activeSubscription?.plan?.name || 'FREE',
+        },
+      },
     };
   }
 

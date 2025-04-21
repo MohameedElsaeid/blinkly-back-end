@@ -3,15 +3,16 @@ import {
   Get,
   Headers,
   HttpStatus,
+  InternalServerErrorException,
   Ip,
   NotFoundException,
   Param,
   Req,
-  Res,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { RedirectService } from './redirect.module';
+import { RedirectResponse } from './interfaces/redirect.interface';
 
 @ApiTags('Redirect')
 @Controller()
@@ -42,10 +43,9 @@ export class RedirectController {
     @Ip() ip: string,
     @Headers() headers: Record<string, string>,
     @Req() req: Request,
-    @Res() res: Response,
-  ): Promise<void> {
+  ): Promise<RedirectResponse | undefined> {
     try {
-      const redirectUrl = await this.redirectService.handleRedirect(
+      return await this.redirectService.handleRedirect(
         alias,
         {
           ipAddress: ip,
@@ -59,19 +59,11 @@ export class RedirectController {
         },
         req,
       );
-
-      res.redirect(redirectUrl.statusCode, redirectUrl.url);
     } catch (error) {
       if (error instanceof NotFoundException) {
-        res.status(HttpStatus.NOT_FOUND).json({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: 'Link not found or expired',
-        });
+        throw new NotFoundException('Link not found or expired');
       } else {
-        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'An error occurred while processing your request',
-        });
+        throw new InternalServerErrorException('Error processing redirect');
       }
     }
   }

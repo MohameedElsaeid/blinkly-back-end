@@ -11,11 +11,7 @@ import { Link } from '../entities/link.entity';
 import { DynamicLink } from '../entities/dynamic-link.entity';
 import { IClickData } from '../interfaces/analytics.interface';
 import { UAParser } from 'ua-parser-js';
-
-interface RedirectResponse {
-  url: string;
-  statusCode: number;
-}
+import { RedirectResponse } from './interfaces/redirect.interface';
 
 @Injectable()
 export class RedirectService {
@@ -128,8 +124,9 @@ export class RedirectService {
       throw new BadRequestException('Link has expired');
     }
 
+    this.logger.log(link);
     return {
-      url: link.originalUrl,
+      target: link.originalUrl,
       statusCode: link.redirectType,
     };
   }
@@ -146,7 +143,7 @@ export class RedirectService {
     const targetUrl = this.determineTargetUrl(dynamicLink, req);
 
     return {
-      url: targetUrl,
+      target: targetUrl,
       statusCode: 302,
     };
   }

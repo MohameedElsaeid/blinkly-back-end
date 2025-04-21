@@ -1,0 +1,37 @@
+# .github/workflows/deploy.yml
+
+name: 🚀 Deploy Blinkly API
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: 🔄 Auto Deploy to Droplet via SSH Key
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔄 Deploy over SSH using Key
+        uses: appleboy/ssh-action@master
+        with:
+          host: 167.71.56.71
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            echo "📂 Moving to backend folder"
+            cd /var/www/blinkly-back-end
+
+            echo "📥 Pulling latest changes"
+            git reset --hard HEAD
+            git pull origin main
+
+            echo "📦 Installing dependencies"
+            npm install
+
+            echo "⚙️ Building"
+            npm run build
+
+            echo "🚀 Restarting API"
+            pm2 restart blinkly-api || pm2 start dist/main.js --name blinkly-api

@@ -11,7 +11,69 @@ async function bootstrap(): Promise<void> {
   const isProd = process.env.NODE_ENV === 'production';
 
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
-
+  app.enableCors({
+    origin: isProd
+      ? [
+          'https://blinkly.app',
+          'https://www.blinkly.app',
+          'https://api.blinkly.app',
+        ]
+      : true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'content-type',
+      'authorization',
+      'x-csrf-token',
+      'x-request-id',
+      'x-request-time',
+      'dnt',
+      'sec-ch-ua',
+      'sec-ch-ua-mobile',
+      'sec-ch-ua-platform',
+      'x-requested-with',
+      'cf-ipcountry',
+      'cf-ray',
+      'cf-visitor',
+      'cf-device-type',
+      'cf-metro-code',
+      'cf-region',
+      'cf-region-code',
+      'cf-connecting-ip',
+      'cf-ipcity',
+      'x-geo-data',
+      'cf-ipcontinent',
+      'cf-iplatitude',
+      'cf-iplongitude',
+      'cf-iptimezone',
+      'x-forward-cloudflare-headers',
+      'x-user-agent',
+      'x-language',
+      'x-platform',
+      'x-screen-width',
+      'x-screen-height',
+      'x-time-zone',
+      'x-color-depth',
+      'x-hardware-concurrency',
+      'x-device-memory',
+      'x-custom-header',
+      'x-fb-browser-id', // Explicitly allowed
+      'x-fb-click-id',
+      'x-xsrf-token',
+      'device-id',
+      'priority',
+      'cookie',
+    ],
+    exposedHeaders: [
+      'set-cookie',
+      'x-csrf-token',
+      'x-request-id',
+      'x-request-time',
+      'xsrf-token',
+      'cookie',
+    ],
+    credentials: true,
+    maxAge: 86400,
+  });
   app.use(cookieParser());
   app.use(
     helmet({
@@ -71,165 +133,165 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  app.enableCors({
-    origin: isProd
-      ? [
-          'https://blinkly.app',
-          'https://www.blinkly.app',
-          'https://api.blinkly.app',
-        ]
-      : true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'content-type',
-
-      'Authorization',
-      'authorization',
-
-      'X-csrf-token',
-      'x-csrf-token',
-
-      'X-Request-ID',
-      'x-request-id',
-
-      'X-Request-Time',
-      'x-request-time',
-
-      'DNT',
-      'dnt',
-
-      'Sec-Ch-Ua',
-      'sec-ch-ua',
-
-      'Sec-Ch-Ua-Mobile',
-      'sec-ch-ua-mobile',
-
-      'Sec-Ch-Ua-Platform',
-      'sec-ch-ua-platform',
-
-      'X-requested-with',
-      'x-requested-with',
-
-      'CF-IPCountry',
-      'cf-ipcountry',
-
-      'CF-Ray',
-      'cf-ray',
-
-      'CF-Visitor',
-      'cf-visitor',
-
-      'CF-Device-Type',
-      'cf-device-type',
-
-      'CF-Metro-Code',
-      'cf-metro-code',
-
-      'CF-Region',
-      'cf-region',
-
-      'CF-Region-Code',
-      'cf-region-code',
-
-      'CF-Connecting-IP',
-      'cf-connecting-ip',
-
-      'CF-IPCity',
-      'cf-ipcity',
-
-      'xGeoData',
-      'xgeodata',
-      'x-geo-data',
-
-      'CF-IPContinent',
-      'cf-ipcontinent',
-
-      'CF-IPLatitude',
-      'cf-iplatitude',
-
-      'CF-IPLongitude',
-      'cf-iplongitude',
-
-      'CF-IPTimeZone',
-      'cf-iptimezone',
-
-      'X-forward-cloudflare-headers',
-      'x-forward-cloudflare-headers',
-
-      'X-User-Agent',
-      'x-user-agent',
-
-      'X-Language',
-      'x-language',
-
-      'X-Platform',
-      'x-platform',
-
-      'X-Screen-Width',
-      'x-screen-width',
-
-      'X-Screen-Height',
-      'x-screen-height',
-
-      'X-Time-Zone',
-      'x-time-zone',
-
-      'X-Color-Depth',
-      'x-color-depth',
-
-      'X-Hardware-Concurrency',
-      'x-hardware-concurrency',
-
-      'X-Device-Memory',
-      'x-device-memory',
-
-      'X-Custom-Header',
-      'x-custom-header',
-
-      'X-FB-Browser-ID',
-      'x-fb-browser-id',
-
-      'X-FB-Click-ID',
-      'x-fb-click-id',
-
-      'X-XSRF-TOKEN',
-      'x-xsrf-token',
-
-      'Device-ID',
-      'device-id',
-
-      'Priority',
-      'priority',
-
-      'X-xsrf-token',
-      'x-xsrf-token',
-
-      'Cookie',
-      'cookie',
-    ],
-    exposedHeaders: [
-      'Set-cookie',
-      'set-cookie',
-
-      'X-csrf-token',
-      'x-csrf-token',
-
-      'X-Request-ID',
-      'x-request-id',
-
-      'X-Request-Time',
-      'x-request-time',
-
-      'XSRF-TOKEN',
-      'xsrf-token',
-
-      'Cookie',
-      'cookie',
-    ],
-    credentials: true,
-    maxAge: 86400,
-  });
+  // app.enableCors({
+  //   origin: isProd
+  //     ? [
+  //         'https://blinkly.app',
+  //         'https://www.blinkly.app',
+  //         'https://api.blinkly.app',
+  //       ]
+  //     : true,
+  //   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  //   allowedHeaders: [
+  //     'Content-Type',
+  //     'content-type',
+  //
+  //     'Authorization',
+  //     'authorization',
+  //
+  //     'X-csrf-token',
+  //     'x-csrf-token',
+  //
+  //     'X-Request-ID',
+  //     'x-request-id',
+  //
+  //     'X-Request-Time',
+  //     'x-request-time',
+  //
+  //     'DNT',
+  //     'dnt',
+  //
+  //     'Sec-Ch-Ua',
+  //     'sec-ch-ua',
+  //
+  //     'Sec-Ch-Ua-Mobile',
+  //     'sec-ch-ua-mobile',
+  //
+  //     'Sec-Ch-Ua-Platform',
+  //     'sec-ch-ua-platform',
+  //
+  //     'X-requested-with',
+  //     'x-requested-with',
+  //
+  //     'CF-IPCountry',
+  //     'cf-ipcountry',
+  //
+  //     'CF-Ray',
+  //     'cf-ray',
+  //
+  //     'CF-Visitor',
+  //     'cf-visitor',
+  //
+  //     'CF-Device-Type',
+  //     'cf-device-type',
+  //
+  //     'CF-Metro-Code',
+  //     'cf-metro-code',
+  //
+  //     'CF-Region',
+  //     'cf-region',
+  //
+  //     'CF-Region-Code',
+  //     'cf-region-code',
+  //
+  //     'CF-Connecting-IP',
+  //     'cf-connecting-ip',
+  //
+  //     'CF-IPCity',
+  //     'cf-ipcity',
+  //
+  //     'xGeoData',
+  //     'xgeodata',
+  //     'x-geo-data',
+  //
+  //     'CF-IPContinent',
+  //     'cf-ipcontinent',
+  //
+  //     'CF-IPLatitude',
+  //     'cf-iplatitude',
+  //
+  //     'CF-IPLongitude',
+  //     'cf-iplongitude',
+  //
+  //     'CF-IPTimeZone',
+  //     'cf-iptimezone',
+  //
+  //     'X-forward-cloudflare-headers',
+  //     'x-forward-cloudflare-headers',
+  //
+  //     'X-User-Agent',
+  //     'x-user-agent',
+  //
+  //     'X-Language',
+  //     'x-language',
+  //
+  //     'X-Platform',
+  //     'x-platform',
+  //
+  //     'X-Screen-Width',
+  //     'x-screen-width',
+  //
+  //     'X-Screen-Height',
+  //     'x-screen-height',
+  //
+  //     'X-Time-Zone',
+  //     'x-time-zone',
+  //
+  //     'X-Color-Depth',
+  //     'x-color-depth',
+  //
+  //     'X-Hardware-Concurrency',
+  //     'x-hardware-concurrency',
+  //
+  //     'X-Device-Memory',
+  //     'x-device-memory',
+  //
+  //     'X-Custom-Header',
+  //     'x-custom-header',
+  //
+  //     'X-FB-Browser-ID',
+  //     'x-fb-browser-id',
+  //
+  //     'X-FB-Click-ID',
+  //     'x-fb-click-id',
+  //
+  //     'X-XSRF-TOKEN',
+  //     'x-xsrf-token',
+  //
+  //     'Device-ID',
+  //     'device-id',
+  //
+  //     'Priority',
+  //     'priority',
+  //
+  //     'X-xsrf-token',
+  //     'x-xsrf-token',
+  //
+  //     'Cookie',
+  //     'cookie',
+  //   ],
+  //   exposedHeaders: [
+  //     'Set-cookie',
+  //     'set-cookie',
+  //
+  //     'X-csrf-token',
+  //     'x-csrf-token',
+  //
+  //     'X-Request-ID',
+  //     'x-request-id',
+  //
+  //     'X-Request-Time',
+  //     'x-request-time',
+  //
+  //     'XSRF-TOKEN',
+  //     'xsrf-token',
+  //
+  //     'Cookie',
+  //     'cookie',
+  //   ],
+  //   credentials: true,
+  //   maxAge: 86400,
+  // });
 
   const httpLogger = new Logger('HTTP');
 

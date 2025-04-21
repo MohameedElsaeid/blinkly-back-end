@@ -14,6 +14,29 @@ async function bootstrap(): Promise<void> {
   // 1) Trust proxy (Cloudflare)
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = isProd ? 'https://blinkly.app' : req.headers.origin || '*';
+
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header(
+      'Access-Control-Allow-Methods',
+      'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    );
+
+    const requested = req.header('Access-Control-Request-Headers');
+    if (requested) {
+      // هنا برجع أي هيدرز طلبها الـ browser، بما فيها x-fb-browser-id
+      res.header('Access-Control-Allow-Headers', requested);
+    }
+
+    res.header('Access-Control-Allow-Credentials', 'true');
+
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(204);
+    }
+    next();
+  });
+
   // 2) Enable CORS
   app.enableCors({
     origin: isProd ? ['https://blinkly.app', 'https://www.blinkly.app'] : true,

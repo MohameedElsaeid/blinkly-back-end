@@ -13,25 +13,25 @@ async function bootstrap(): Promise<void> {
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   app.use(cookieParser());
-  app.use((req, res, next) => {
-    if (req.method === 'OPTIONS') {
-      res.header(
-        'Access-Control-Allow-Origin',
-        isProd ? 'https://blinkly.app' : '*',
-      );
-      res.header(
-        'Access-Control-Allow-Methods',
-        'GET, POST, OPTIONS, PUT, DELETE',
-      );
-      res.header(
-        'Access-Control-Allow-Headers',
-        req.header('Access-Control-Request-Headers'),
-      );
-      res.header('Access-Control-Max-Age', '86400');
-      return res.sendStatus(204);
-    }
-    next();
-  });
+  // app.use((req, res, next) => {
+  //   if (req.method === 'OPTIONS') {
+  //     res.header(
+  //       'Access-Control-Allow-Origin',
+  //       isProd ? 'https://blinkly.app' : '*',
+  //     );
+  //     res.header(
+  //       'Access-Control-Allow-Methods',
+  //       'GET, POST, OPTIONS, PUT, DELETE',
+  //     );
+  //     res.header(
+  //       'Access-Control-Allow-Headers',
+  //       req.header('Access-Control-Request-Headers'),
+  //     );
+  //     res.header('Access-Control-Max-Age', '86400');
+  //     return res.sendStatus(204);
+  //   }
+  //   next();
+  // });
 
   app.use(
     helmet({

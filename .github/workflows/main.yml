@@ -4,7 +4,7 @@ name: 🚀 Deploy Blinkly API
 
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 jobs:
   deploy:

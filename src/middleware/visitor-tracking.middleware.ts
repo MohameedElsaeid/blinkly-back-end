@@ -34,20 +34,20 @@ export class VisitorTrackingMiddleware implements NestMiddleware {
 
       const userDevice = await this.upsertUserDevice(user, headers, deviceId);
 
-      this.logger().log(`DEVICE : ${JSON.stringify(userDevice)}`);
-
-      await this.trackVisit({
-        req,
-        headers,
-        user,
-        userDevice,
-        ua,
-        deviceId,
-        geoCountry,
-        geoLatitude,
-        geoLongitude,
-        geoCity,
-      });
+      if (userDevice) {
+        await this.trackVisit({
+          req,
+          headers,
+          user,
+          userDevice,
+          ua,
+          deviceId,
+          geoCountry,
+          geoLatitude,
+          geoLongitude,
+          geoCity,
+        });
+      }
     } catch (error) {
       this.logger().error('Error in visitor tracking:', error);
     } finally {
@@ -118,27 +118,40 @@ export class VisitorTrackingMiddleware implements NestMiddleware {
     deviceId: string,
   ): Promise<UserDevice | null> {
     try {
+      // First try to find the device for this user
       let device = await this.manager.getRepository(UserDevice).findOne({
         where: {
-          userId: user?.id,
           deviceId,
+          userId: user?.id,
         },
       });
 
       if (!device) {
-        device = this.manager.getRepository(UserDevice).create({
-          userId: user?.id,
-          deviceId,
-          xDeviceId: headers.xDeviceId || null,
-          xDeviceMemory: headers.xDeviceMemory || null,
-          xPlatform: headers.xPlatform || null,
-          xScreenWidth: headers.xScreenWidth || null,
-          xScreenHeight: headers.xScreenHeight || null,
-          xColorDepth: headers.xColorDepth || null,
-          xTimeZone: headers.xTimeZone || null,
+        // If no device found for this user, try to find any device with this deviceId
+        device = await this.manager.getRepository(UserDevice).findOne({
+          where: { deviceId },
         });
 
-        await this.manager.getRepository(UserDevice).save(device);
+        if (device) {
+          // If device exists but for a different user, update it with the new user
+          device.userId = user?.id;
+        } else {
+          // If no device exists at all, create a new one
+          device = this.manager.getRepository(UserDevice).create({
+            userId: user?.id,
+            deviceId,
+            xDeviceId: headers.xDeviceId,
+            xDeviceMemory: headers.xDeviceMemory,
+            xPlatform: headers.xPlatform,
+            xScreenWidth: headers.xScreenWidth,
+            xScreenHeight: headers.xScreenHeight,
+            xColorDepth: headers.xColorDepth,
+            xTimeZone: headers.xTimeZone,
+          });
+        }
+
+        // Save the device
+        device = await this.manager.getRepository(UserDevice).save(device);
       }
 
       return device;

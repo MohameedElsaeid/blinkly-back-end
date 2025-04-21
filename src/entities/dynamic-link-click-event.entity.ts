@@ -93,4 +93,14 @@ export class DynamicLinkClickEvent {
   @Column({ type: 'varchar', nullable: true }) xCustomHeader: string | null;
   @Column({ type: 'varchar', nullable: true }) xDeviceId: string | null;
   @Column({ type: 'varchar', nullable: true }) doConnectingIp: string | null;
+  @Column({ type: 'varchar', nullable: true }) browser: string | null;
+  @Column({ type: 'varchar', nullable: true }) browserVersion: string | null;
+  @Column({ type: 'varchar', nullable: true }) os: string | null;
+  @Column({ type: 'varchar', nullable: true }) osVersion: string | null;
+  @Column({ type: 'varchar', nullable: true }) device: string | null;
+  @Column({ type: 'varchar', nullable: true }) deviceType: string | null;
+  @Column({ type: 'jsonb', nullable: true }) queryParams: Record<
+    string,
+    any
+  > | null;
 }

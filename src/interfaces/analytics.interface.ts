@@ -58,7 +58,14 @@ export interface IClicksByMetric {
 
 export interface ILinkAnalytics {
   totalClicks: number;
-  events: ClickEvent[];
+  uniqueDevices: number;
+  clicksByCountry: Record<string, number>;
+  clicksByCity: Record<string, number>;
+  clicksByBrowser: Record<string, number>;
+  clicksByDevice: Record<string, number>;
+  clicksByOS: Record<string, number>;
+  clicksByDate: Record<string, number>;
+  recentClicks: ClickEvent[];
 }
 
 export interface IDateRangeAnalytics extends ILinkAnalytics {

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { Link } from '../entities/link.entity';
 import { ClickEvent } from '../entities/click-event.entity';
 import { DynamicLinkClickEvent } from '../entities/dynamic-link-click-event.entity';
@@ -8,6 +8,7 @@ import {
   IDashboardTip,
   ITopLink,
   ITotalClicksResponse,
+  LinkAnalytics,
 } from './dashboard.interface';
 
 @Injectable()
@@ -84,6 +85,76 @@ export class DashboardService {
       originalUrl: link.originalUrl,
       clickCount: link.clickCount,
     }));
+  }
+
+  private async getDetailedAnalytics(link: Link): Promise<LinkAnalytics> {
+    const clicks = await this.clickEventRepository.find({
+      where: { link: { id: link.id } },
+      relations: ['userDevice'],
+      order: { timestamp: 'DESC' },
+    });
+
+    // Get unique devices count
+    const uniqueDevices = new Set(
+      clicks.map((click) => click.userDevice?.deviceId),
+    ).size;
+
+    // Group by browser
+    const clicksByBrowser = this.groupClicksByField(clicks, 'browser');
+
+    // Group by device type
+    const clicksByDevice = this.groupClicksByField(clicks, 'deviceType');
+
+    // Group by OS
+    const clicksByOS = this.groupClicksByField(clicks, 'os');
+
+    // Group by country
+    const clicksByCountry = this.groupClicksByField(clicks, 'geoCountry');
+
+    // Group by city
+    const clicksByCity = this.groupClicksByField(clicks, 'geoCity');
+
+    // Group by date
+    const clicksByDate = this.groupClicksByDate(clicks);
+
+    return {
+      totalClicks: clicks.length,
+      uniqueDevices,
+      clicksByCountry,
+      clicksByCity,
+      clicksByBrowser,
+      clicksByDevice,
+      clicksByOS,
+      clicksByDate,
+      recentClicks: clicks.slice(0, 5),
+    };
+  }
+
+  private groupClicksByDate(clicks: ClickEvent[]): Record<string, number> {
+    return clicks.reduce(
+      (acc, click) => {
+        if (click.timestamp) {
+          const date = new Date(click.timestamp).toISOString().split('T')[0];
+          acc[date] = (acc[date] || 0) + 1;
+        }
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+  }
+
+  private groupClicksByField(
+    clicks: ClickEvent[],
+    field: keyof ClickEvent,
+  ): Record<string, number> {
+    return clicks.reduce(
+      (acc, click) => {
+        const value = (click[field] as string) || 'Unknown';
+        acc[value] = (acc[value] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
   }
 
   getDashboardTips(): IDashboardTip[] {

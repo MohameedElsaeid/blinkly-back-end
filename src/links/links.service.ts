@@ -17,20 +17,12 @@ import { CreateLinkDto } from './dto/create-link.dto';
 import { CreateDynamicLinkDto } from './dto/create-dynamic-link.dto';
 import { PlanName } from '../entities/plan.entity';
 import { GetLinksDto } from './dto/get-links.dto';
+import { ILinkAnalytics } from '../interfaces/analytics.interface';
 
 const nanoid = customAlphabet(
   '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
   8,
 );
-
-interface LinkAnalytics {
-  totalClicks: number;
-  clicksByCountry: Record<string, number>;
-  clicksByBrowser: Record<string, number>;
-  clicksByDevice: Record<string, number>;
-  clicksByDate: Record<string, number>;
-  recentClicks: ClickEvent[];
-}
 
 @Injectable()
 export class LinksService {
@@ -53,7 +45,7 @@ export class LinksService {
     try {
       const [links, total] = await this.linkRepository.findAndCount({
         where: { user: { id: userId } },
-        relations: ['clickEvents'],
+        relations: ['clickEvents', 'clickEvents.userDevice'],
         order: {
           [query.sortBy]: query.sortOrder,
         },
@@ -61,8 +53,9 @@ export class LinksService {
         take: query.limit,
       });
 
-      const linksWithBasicStats = await Promise.all(
-        links.map((link) => {
+      const linksWithAnalytics = await Promise.all(
+        links.map(async (link) => {
+          const analytics = await this.getDetailedAnalytics(link);
           return {
             id: link.id,
             originalUrl: link.originalUrl,
@@ -74,12 +67,13 @@ export class LinksService {
             expiresAt: link.expiresAt,
             createdAt: link.createdAt,
             updatedAt: link.updatedAt,
+            analytics,
           };
         }),
       );
 
       return {
-        links: linksWithBasicStats,
+        links: linksWithAnalytics,
         pagination: {
           total,
           page: query.page,
@@ -97,7 +91,7 @@ export class LinksService {
     try {
       const link = await this.linkRepository.findOne({
         where: { id: linkId, user: { id: userId } },
-        relations: ['clickEvents'],
+        relations: ['clickEvents', 'clickEvents.userDevice'],
       });
 
       if (!link) {
@@ -116,34 +110,44 @@ export class LinksService {
     }
   }
 
-  private async getBasicAnalytics(link: Link) {
-    const recentClicks = await this.clickEventRepository.find({
-      where: { link: { id: link.id } },
-      order: { timestamp: 'DESC' },
-      take: 5,
-    });
-
-    return link.clickCount ?? 0;
-  }
-
-  private async getDetailedAnalytics(link: Link): Promise<LinkAnalytics> {
+  private async getDetailedAnalytics(link: Link): Promise<ILinkAnalytics> {
     const clicks = await this.clickEventRepository.find({
       where: { link: { id: link.id } },
+      relations: ['userDevice'],
       order: { timestamp: 'DESC' },
     });
 
+    // Get unique devices count
+    const uniqueDevices = new Set(
+      clicks.map((click) => click.userDevice?.deviceId),
+    ).size;
+
+    // Group by browser
+    const clicksByBrowser = this.groupClicksByField(clicks, 'browser');
+
+    // Group by device type
+    const clicksByDevice = this.groupClicksByField(clicks, 'deviceType');
+
+    // Group by OS
+    const clicksByOS = this.groupClicksByField(clicks, 'os');
+
+    // Group by country
     const clicksByCountry = this.groupClicksByField(clicks, 'geoCountry');
-    const clicksByBrowser = this.groupClicksByField(clicks, 'userAgent');
-    const clicksByDevice = this.groupClicksByField(clicks, 'userAgent', (ua) =>
-      this.parseDeviceType(ua),
-    );
+
+    // Group by city
+    const clicksByCity = this.groupClicksByField(clicks, 'geoCity');
+
+    // Group by date
     const clicksByDate = this.groupClicksByDate(clicks);
 
     return {
       totalClicks: clicks.length,
+      uniqueDevices,
       clicksByCountry,
+      clicksByCity,
       clicksByBrowser,
       clicksByDevice,
+      clicksByOS,
       clicksByDate,
       recentClicks: clicks.slice(0, 5),
     };
@@ -165,28 +169,10 @@ export class LinksService {
   private groupClicksByField(
     clicks: ClickEvent[],
     field: keyof ClickEvent,
-    transform?: (value: string) => string,
   ): Record<string, number> {
     return clicks.reduce(
       (acc, click) => {
-        let value = (click[field] as string) || 'Unknown';
-        if (transform) {
-          value = transform(value);
-        }
-        acc[value] = (acc[value] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-  }
-
-  private calculateClicksByMetric(
-    clicks: ClickEvent[],
-    metric: keyof ClickEvent,
-  ): Record<string, number> {
-    return clicks.reduce(
-      (acc, click) => {
-        const value = (click[metric] as string) || 'Unknown';
+        const value = (click[field] as string) || 'Unknown';
         acc[value] = (acc[value] || 0) + 1;
         return acc;
       },
@@ -316,21 +302,6 @@ export class LinksService {
     }
 
     return user;
-  }
-
-  private parseDeviceType(userAgent: string): string {
-    const ua = userAgent.toLowerCase();
-    if (
-      ua.includes('mobile') ||
-      ua.includes('android') ||
-      ua.includes('iphone')
-    ) {
-      return 'Mobile';
-    }
-    if (ua.includes('tablet') || ua.includes('ipad')) {
-      return 'Tablet';
-    }
-    return 'Desktop';
   }
 
   private async validateAlias(alias: string): Promise<void> {

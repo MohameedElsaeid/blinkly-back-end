@@ -149,12 +149,20 @@ export class RedirectService {
     try {
       const headers = this.transformHeaders(req.headers);
       const deviceId = await this.getOrCreateUserDevice(headers);
+      const ua = new UAParser(headers.userAgent as string);
 
       const clickEvent = this.clickEventRepository.create({
         link,
         userDevice: deviceId,
         timestamp: new Date(),
         ...this.extractClickData(req),
+        browser: ua.getBrowser().name || null,
+        browserVersion: ua.getBrowser().version || null,
+        os: ua.getOS().name || null,
+        osVersion: ua.getOS().version || null,
+        device: ua.getDevice().model || null,
+        deviceType: ua.getDevice().type || null,
+        queryParams: req.query || null,
       });
 
       await this.clickEventRepository.save(clickEvent);
@@ -174,12 +182,20 @@ export class RedirectService {
     try {
       const headers = this.transformHeaders(req.headers);
       const deviceId = await this.getOrCreateUserDevice(headers);
+      const ua = new UAParser(headers.userAgent as string);
 
       const clickEvent = this.dynamicClickEventRepository.create({
         dynamicLink,
         userDevice: deviceId,
         timestamp: new Date(),
         ...this.extractClickData(req),
+        browser: ua.getBrowser().name || null,
+        browserVersion: ua.getBrowser().version || null,
+        os: ua.getOS().name || null,
+        osVersion: ua.getOS().version || null,
+        device: ua.getDevice().model || null,
+        deviceType: ua.getDevice().type || null,
+        queryParams: req.query || null,
       });
 
       await this.dynamicClickEventRepository.save(clickEvent);
@@ -258,13 +274,13 @@ export class RedirectService {
       secChUa: headers['sec-ch-ua'],
       secChUaMobile: headers['sec-ch-ua-mobile'],
       secChUaPlatform: headers['sec-ch-ua-platform'],
-      browser: ua.getBrowser().name,
-      browserVersion: ua.getBrowser().version,
-      os: ua.getOS().name,
-      osVersion: ua.getOS().version,
-      device: ua.getDevice().model,
-      deviceType: ua.getDevice().type,
-      queryParams: query,
+      browser: ua.getBrowser().name || null,
+      browserVersion: ua.getBrowser().version || null,
+      os: ua.getOS().name || null,
+      osVersion: ua.getOS().version || null,
+      device: ua.getDevice().model || null,
+      deviceType: ua.getDevice().type || null,
+      queryParams: query || null,
     };
   }
 

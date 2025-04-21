@@ -1,4 +1,4 @@
-import { Link } from '../entities/link.entity';
+import { ClickEvent } from '../entities/click-event.entity';
 
 export interface IDashboardTip {
   title: string;
@@ -29,4 +29,16 @@ export interface IDashboardTipsResponse {
 
 export interface IDashboardTricksResponse {
   tricks: string[];
+}
+
+export interface LinkAnalytics {
+  totalClicks: number;
+  uniqueDevices: number;
+  clicksByCountry: Record<string, number>;
+  clicksByCity: Record<string, number>;
+  clicksByBrowser: Record<string, number>;
+  clicksByDevice: Record<string, number>;
+  clicksByOS: Record<string, number>;
+  clicksByDate: Record<string, number>;
+  recentClicks: ClickEvent[];
 }

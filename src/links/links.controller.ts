@@ -27,6 +27,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { GetLinksDto } from './dto/get-links.dto';
+import { ILinkAnalytics } from '../interfaces/analytics.interface';
 
 @ApiTags('Links')
 @ApiBearerAuth()
@@ -61,15 +62,16 @@ export class LinksController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<{
     id: string;
-    // include all other Link properties here
-    analytics: {
-      totalClicks: number;
-      clicksByCountry: Record<string, number>;
-      clicksByBrowser: Record<string, number>;
-      clicksByDevice: Record<string, number>;
-      clicksByDate: Record<string, number>;
-      recentClicks: any[]; // or use a proper ClickEvent type
-    };
+    originalUrl: string;
+    alias: string;
+    isActive: boolean;
+    tags: string[];
+    clickCount: number;
+    redirectType: number;
+    expiresAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+    analytics: ILinkAnalytics;
   }> {
     return await this.linksService.getLinkById(req.user.id, id);
   }

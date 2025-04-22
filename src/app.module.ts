@@ -29,6 +29,7 @@ import { Visit } from './entities/visit.entity';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UserDevice } from './entities/user-device.entity';
 import { VisitorTrackingMiddleware } from './middleware/visitor-tracking.middleware';
+import { UsersModule } from './users/users.module';
 
 const redisStoreFactory: any = redisStore;
 
@@ -114,6 +115,7 @@ const redisStoreFactory: any = redisStore;
     RedirectModule,
     VisitorModule,
     DashboardModule,
+    UsersModule,
   ],
   controllers: [],
   providers: [VisitorTrackingMiddleware],

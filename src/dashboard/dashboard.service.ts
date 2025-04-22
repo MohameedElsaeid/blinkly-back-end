@@ -143,11 +143,10 @@ export class DashboardService {
     };
   }
 
-  async getGeographicDistribution(
-    userId: string,
-    startDate: Date,
-    endDate: Date,
-  ) {
+  async getGeographicDistribution(userId: string, days: number) {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - days);
     const clicks = await this.getUserClickQuery(userId)
       .andWhere('click.timestamp BETWEEN :start AND :end', {
         start: startDate,
@@ -224,7 +223,7 @@ export class DashboardService {
     return {
       total_clicks: total,
       period_start: startDate.toISOString(),
-      period_end: now.toISOString(),
+      period_end: endDate.toISOString(),
       countries: {
         distribution: countryDistribution,
         percentages: countryPercentages,
@@ -239,7 +238,10 @@ export class DashboardService {
     };
   }
 
-  async getDeviceDistribution(userId: string, startDate: Date, endDate: Date) {
+  async getDeviceDistribution(userId: string, days: number) {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - days);
     const clicks = await this.getUserClickQuery(userId)
       .andWhere('click.timestamp BETWEEN :start AND :end', {
         start: startDate,
@@ -308,7 +310,7 @@ export class DashboardService {
     return {
       total_clicks: total,
       period_start: startDate.toISOString(),
-      period_end: now.toISOString(),
+      period_end: endDate.toISOString(),
       devices,
       browsers,
       operating_systems: operatingSystems,

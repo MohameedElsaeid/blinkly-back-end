@@ -230,10 +230,33 @@ export class LinksService {
     try {
       const user = await this.validateUserAndSubscription(userId);
 
+      // Get current month's start date
+      const currentMonthStart = new Date();
+      currentMonthStart.setDate(1);
+      currentMonthStart.setHours(0, 0, 0, 0);
+
+      // Count existing dynamic links for current month
+      const dynamicLinksCount = await this.dynamicLinkRepository.count({
+        where: {
+          user: { id: userId },
+          createdAt: MoreThan(currentMonthStart),
+        },
+      });
+
+      // Check plan-specific limits
       if (user.activeSubscription.plan.name === PlanName.FREE) {
-        throw new BadRequestException(
-          'Dynamic links require a paid subscription',
-        );
+        if (dynamicLinksCount >= 1) {
+          throw new BadRequestException(
+            'Free plan is limited to 1 dynamic link per month',
+          );
+        }
+      } else {
+        const linkLimit = user.activeSubscription.plan.shortenedLinksLimit;
+        if (linkLimit !== null && dynamicLinksCount >= linkLimit) {
+          throw new BadRequestException(
+            `Monthly dynamic link limit (${linkLimit}) reached`,
+          );
+        }
       }
 
       await this.validateAlias(createDynamicLinkDto.alias);

@@ -1,7 +1,9 @@
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
+  Index,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -25,9 +27,11 @@ export class Link {
   originalUrl: string;
 
   @Column({ unique: true })
+  @Index()
   alias: string;
 
   @Column({ default: true })
+  @Index()
   isActive: boolean;
 
   @Column('simple-array', { nullable: true })
@@ -40,6 +44,7 @@ export class Link {
   redirectType: RedirectType;
 
   @Column({ type: 'timestamp', nullable: true })
+  @Index()
   expiresAt: Date | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
@@ -55,6 +60,7 @@ export class Link {
   description: string | null;
 
   @ManyToOne(() => User, (user) => user.links)
+  @Index()
   user: User;
 
   @OneToMany(() => ClickEvent, (clickEvent) => clickEvent.link)
@@ -63,9 +69,12 @@ export class Link {
   @OneToMany(() => QrCode, (qrCode) => qrCode.link)
   qrCodes: QrCode[];
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+  deletedAt?: Date;
 }

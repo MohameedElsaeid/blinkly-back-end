@@ -1,7 +1,9 @@
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
+  Index,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -19,6 +21,7 @@ export class DynamicLink {
   name: string;
 
   @Column({ unique: true })
+  @Index()
   alias: string;
 
   // Primary or default URL.
@@ -72,14 +75,23 @@ export class DynamicLink {
   )
   clickEvents: DynamicLinkClickEvent[];
 
-  @CreateDateColumn()
-  createdAt: Date;
+  @Column({ nullable: true })
+  expiresAt: Date;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @Column({ nullable: true })
+  deepLinkPath: string;
 
   // A helper to count total clicks.
   get clicks(): number {
     return this.clickEvents ? this.clickEvents.length : 0;
   }
+
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  updatedAt: Date;
+
+  @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+  deletedAt?: Date;
 }

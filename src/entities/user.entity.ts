@@ -3,7 +3,9 @@ import {
   BeforeUpdate,
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
+  Index,
   JoinColumn,
   OneToMany,
   OneToOne,
@@ -36,6 +38,7 @@ export class User {
   @Column({ type: 'varchar', length: 50 })
   lastName: string;
 
+  @Index('idx_user_email', { unique: true })
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
@@ -52,16 +55,20 @@ export class User {
   @Column({ type: 'varchar', length: 45, nullable: true })
   ipAddress: string;
 
+  @Index()
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   role: UserRole;
 
+  @Index()
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
+  @Index()
   @Column({ type: 'boolean', default: false })
   isEmailVerified: boolean;
 
   @Column({ type: 'boolean', default: false })
+  @Index()
   isPhoneVerified: boolean;
 
   @Column({ type: 'date', nullable: true })
@@ -127,6 +134,9 @@ export class User {
       this.password = await bcrypt.hash(this.password, salt);
     }
   }
+
+  @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+  deletedAt?: Date;
 
   async validatePassword(password: string): Promise<boolean> {
     return bcrypt.compare(password, this.password);

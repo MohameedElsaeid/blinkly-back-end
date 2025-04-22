@@ -1,9 +1,12 @@
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
+  Index,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
@@ -17,11 +20,12 @@ export enum SubscriptionStatus {
 }
 
 @Entity('user_subscriptions')
+@Unique(['user', 'plan', 'status'])
 export class UserSubscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // Each subscription is linked to one user
+  @Index()
   @ManyToOne(() => User, (user) => user.subscriptions, { onDelete: 'CASCADE' })
   user: User;
 
@@ -36,6 +40,7 @@ export class UserSubscription {
   @Column({ type: 'timestamp with time zone', nullable: true })
   endDate: Date | null;
 
+  @Index()
   @Column({
     type: 'enum',
     enum: SubscriptionStatus,
@@ -43,9 +48,15 @@ export class UserSubscription {
   })
   status: SubscriptionStatus;
 
+  @Column({ type: 'boolean', default: false })
+  autoRenew: boolean;
+
   // Stripe-specific fields
   @Column({ type: 'varchar', length: 255, nullable: true })
   stripeSubscriptionId: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  source: string; // e.g. 'stripe', 'admin', 'gift'
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   stripeCustomerId: string | null;
@@ -55,4 +66,7 @@ export class UserSubscription {
 
   @UpdateDateColumn({ type: 'timestamp with time zone' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+  deletedAt?: Date;
 }

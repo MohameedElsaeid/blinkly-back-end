@@ -1,15 +1,25 @@
 import {
   Column,
+  CreateDateColumn,
+  DeleteDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { UserDevice } from './user-device.entity';
 import { DynamicLink } from './dynamic-link.entity';
 
 @Entity('dynamic_link_click_events')
+@Index(['timestamp']) // used in analytics
+@Index(['userId'])
+@Index(['userDeviceId'])
+@Index(['cfRay']) // useful for tracing
+@Index(['deviceId']) // fingerprinting
+@Index(['dynamicLinkId', 'timestamp'])
 export class DynamicLinkClickEvent {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -32,6 +42,7 @@ export class DynamicLinkClickEvent {
   userDevice: UserDevice;
 
   @Column('uuid')
+  @Index('idx_dynamic_link_click_event_dynamic_link_id')
   dynamicLinkId: string;
 
   @ManyToOne(() => DynamicLink, { onDelete: 'CASCADE' })
@@ -103,4 +114,13 @@ export class DynamicLinkClickEvent {
     string,
     any
   > | null;
+
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  updatedAt: Date;
+
+  @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+  deletedAt?: Date;
 }

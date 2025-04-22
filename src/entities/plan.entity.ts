@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   OneToMany,
   PrimaryGeneratedColumn,
   Unique,
@@ -29,12 +30,14 @@ export class Plan {
   id: string;
 
   @Column({ type: 'enum', enum: PlanName })
+  @Index()
   name: PlanName;
 
   @Column({ type: 'enum', enum: BillingFrequency })
+  @Index()
   billingFrequency: BillingFrequency;
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: 'int', nullable: true, default: 0 })
   price: number | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
@@ -56,6 +59,7 @@ export class Plan {
   freeTrialDays: number | null;
 
   @Column({ type: 'boolean', default: false })
+  @Index()
   isMostPopular: boolean;
 
   @OneToMany(() => UserSubscription, (subscription) => subscription.plan)

@@ -6,8 +6,6 @@ import { ClickEvent } from '../entities/click-event.entity';
 import {
   ClickPerformanceMetrics,
   DashboardAnalytics,
-  DeviceAnalytics,
-  GeographicAnalytics,
   IDashboardTip,
   ITopLink,
   ITotalClicksResponse,
@@ -147,19 +145,21 @@ export class DashboardService {
 
   async getGeographicDistribution(
     userId: string,
-    days: number,
-  ): Promise<GeographicAnalytics> {
-    const now = new Date();
-    const startDate = new Date(now);
-    startDate.setDate(startDate.getDate() - days);
-
-    const clicks = await this.clickEventRepository.find({
-      where: {
-        link: { user: { id: userId } },
-        timestamp: Between(startDate, now),
-      },
-      select: ['geoCountry', 'geoCity', 'geoLatitude', 'geoLongitude'],
-    });
+    startDate: Date,
+    endDate: Date,
+  ) {
+    const clicks = await this.getUserClickQuery(userId)
+      .andWhere('click.timestamp BETWEEN :start AND :end', {
+        start: startDate,
+        end: endDate,
+      })
+      .select([
+        'click.geoCountry',
+        'click.geoCity',
+        'click.geoLatitude',
+        'click.geoLongitude',
+      ])
+      .getMany();
 
     const total = clicks.length;
 
@@ -239,28 +239,21 @@ export class DashboardService {
     };
   }
 
-  async getDeviceDistribution(
-    userId: string,
-    days: number,
-  ): Promise<DeviceAnalytics> {
-    const now = new Date();
-    const startDate = new Date(now);
-    startDate.setDate(startDate.getDate() - days);
-
-    const clicks = await this.clickEventRepository.find({
-      where: {
-        link: { user: { id: userId } },
-        timestamp: Between(startDate, now),
-      },
-      select: [
-        'deviceType',
-        'browser',
-        'browserVersion',
-        'os',
-        'osVersion',
-        'device',
-      ],
-    });
+  async getDeviceDistribution(userId: string, startDate: Date, endDate: Date) {
+    const clicks = await this.getUserClickQuery(userId)
+      .andWhere('click.timestamp BETWEEN :start AND :end', {
+        start: startDate,
+        end: endDate,
+      })
+      .select([
+        'click.deviceType',
+        'click.browser',
+        'click.browserVersion',
+        'click.os',
+        'click.osVersion',
+        'click.device',
+      ])
+      .getMany();
 
     const total = clicks.length;
 
@@ -392,17 +385,25 @@ export class DashboardService {
     }
   }
 
-  private async getClicksCount(
+  private getUserClickQuery(userId: string) {
+    return this.clickEventRepository
+      .createQueryBuilder('click')
+      .innerJoin('click.link', 'link')
+      .innerJoin('link.user', 'user')
+      .where('user.id = :userId', { userId });
+  }
+
+  async getClicksCount(
     userId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<number> {
-    return await this.clickEventRepository.count({
-      where: {
-        link: { user: { id: userId } },
-        timestamp: Between(startDate, endDate),
-      },
-    });
+    return await this.getUserClickQuery(userId)
+      .andWhere('click.timestamp BETWEEN :start AND :end', {
+        start: startDate,
+        end: endDate,
+      })
+      .getCount();
   }
 
   private async getLinksCreatedCount(
@@ -418,25 +419,21 @@ export class DashboardService {
     });
   }
 
-  private async getUniqueCountriesCount(
+  async getUniqueCountriesCount(
     userId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<number> {
-    const clicks = await this.clickEventRepository
-      .createQueryBuilder('click')
+    const countries = await this.getUserClickQuery(userId)
       .select('DISTINCT click.geoCountry')
-      .where('click.timestamp BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      })
       .andWhere('click.geoCountry IS NOT NULL')
-      .innerJoin('click.link', 'link')
-      .innerJoin('link.user', 'user')
-      .andWhere('user.id = :userId', { userId })
+      .andWhere('click.timestamp BETWEEN :start AND :end', {
+        start: startDate,
+        end: endDate,
+      })
       .getRawMany();
 
-    return clicks.length;
+    return countries.length;
   }
 
   private async getAverageCTR(
@@ -490,17 +487,17 @@ export class DashboardService {
     };
   }
 
-  private async getClicksForPeriod(
+  async getClicksForPeriod(
     userId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<number> {
-    return await this.clickEventRepository.count({
-      where: {
-        link: { user: { id: userId } },
-        timestamp: Between(startDate, endDate),
-      },
-    });
+    return await this.getUserClickQuery(userId)
+      .andWhere('click.timestamp BETWEEN :start AND :end', {
+        start: startDate,
+        end: endDate,
+      })
+      .getCount();
   }
 
   async getTopLinks(userId: string, limit = 5): Promise<ITopLink[]> {

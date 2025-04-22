@@ -1,7 +1,9 @@
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
+  Index,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -18,9 +20,11 @@ export class QrCode {
   targetUrl: string;
 
   @ManyToOne(() => Link, (link) => link.qrCodes, { nullable: true })
+  @Index('idx_qrcode_link')
   link: Link;
 
   @ManyToOne(() => User, (user) => user.qrCodes)
+  @Index('idx_qrcode_user')
   user: User;
 
   @Column({ type: 'int', default: 300 })
@@ -35,9 +39,15 @@ export class QrCode {
   @Column({ type: 'varchar', length: 255, nullable: true })
   logoUrl: string | null;
 
+  @Column({ type: 'int', default: 0 })
+  scanCount: number;
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+  deletedAt?: Date;
 }

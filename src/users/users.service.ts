@@ -92,6 +92,8 @@ export class UsersService {
       const shortenedLinksLimit =
         user.activeSubscription?.plan?.shortenedLinksLimit ?? null;
       const qrCodesLimit = user.activeSubscription?.plan?.qrCodesLimit ?? null;
+      const dynamicLinksLimit =
+        user.activeSubscription?.plan?.dynamicLinksLimit ?? 0;
 
       // Calculate remaining counts
       const usage: UsageStats = {
@@ -105,10 +107,10 @@ export class UsersService {
         },
         dynamicLinks: {
           count: dynamicLinksCount,
-          limit: shortenedLinksLimit, // Using same limit as regular links
+          limit: dynamicLinksLimit, // Using same limit as regular links
           remaining:
-            shortenedLinksLimit !== null
-              ? Math.max(0, shortenedLinksLimit - dynamicLinksCount)
+            dynamicLinksLimit !== null
+              ? Math.max(0, dynamicLinksLimit - dynamicLinksCount)
               : null,
         },
         qrCodes: {

@@ -50,6 +50,9 @@ export class Plan {
   shortenedLinksLimit: number | null;
 
   @Column({ type: 'int', nullable: true })
+  dynamicLinksLimit: number | null;
+
+  @Column({ type: 'int', nullable: true })
   qrCodesLimit: number | null;
 
   @Column({ type: 'boolean', default: false })

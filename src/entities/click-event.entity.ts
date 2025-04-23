@@ -12,6 +12,7 @@ import {
 import { User } from './user.entity';
 import { UserDevice } from './user-device.entity';
 import { Link } from './link.entity';
+import { QrCode } from './qr-code.entity';
 
 @Entity('click_events')
 @Index(['linkId']) // filter by link
@@ -50,6 +51,55 @@ export class ClickEvent {
   @ManyToOne(() => Link, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'linkId' })
   link: Link;
+
+  @Column('uuid', { nullable: true })
+  @Index('idx_click_events_qr')
+  qrCodeId?: string | null;
+
+  @ManyToOne(() => QrCode, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'qrCodeId' })
+  qrCode?: QrCode | null;
+
+  @Column('uuid', { nullable: true })
+  @Index('idx_click_events_session')
+  sessionId?: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Index('idx_click_events_utm')
+  utmSource?: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Index('idx_click_events_utm')
+  utmMedium?: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Index('idx_click_events_utm')
+  utmCampaign?: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  utmTerm?: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  utmContent?: string | null;
+
+  @Column({ type: 'integer', nullable: true })
+  statusCode?: number | null;
+
+  @Column({ type: 'integer', nullable: true })
+  responseTime?: number | null;
+
+  @Column({ type: 'boolean', default: false })
+  bounced?: boolean;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Index('idx_click_events_conversion')
+  conversionType?: string | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  conversionValue?: number | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  referrerDomain?: string | null;
 
   @Column({ type: 'varchar', nullable: true }) host: string | null;
   @Column({ type: 'varchar', nullable: true }) cfRay: string | null;

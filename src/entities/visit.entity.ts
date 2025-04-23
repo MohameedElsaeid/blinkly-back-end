@@ -42,12 +42,21 @@ export class Visit {
   @JoinColumn({ name: 'userDeviceId' })
   userDevice: UserDevice;
 
+  @Column('uuid', { nullable: true })
+  @Index('idx_visits_session')
+  sessionId?: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  sessionStartTime?: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  sessionEndTime?: Date | null;
+
+  @Column({ type: 'integer', nullable: true })
+  sessionDuration?: number | null;
+
   @Column({ type: 'varchar', nullable: true }) host: string | null;
-
-  @Index()
-  @Column({ type: 'varchar', nullable: true })
-  cfRay: string | null;
-
+  @Column({ type: 'varchar', nullable: true }) cfRay: string | null;
   @Column({ type: 'timestamptz', nullable: true }) requestTime: Date | null;
   @Column({ type: 'int', nullable: true }) xDeviceMemory: number | null;
   @Column({ type: 'varchar', nullable: true }) requestId: string | null;
@@ -85,9 +94,7 @@ export class Visit {
   @Column({ type: 'varchar', nullable: true }) referer: string | null;
   @Column({ type: 'varchar', nullable: true }) userAgent: string | null;
   @Column({ type: 'varchar', nullable: true }) cfConnectingIp: string | null;
-  @Index()
-  @Column({ type: 'varchar', nullable: true })
-  deviceId: string | null;
+  @Column({ type: 'varchar', nullable: true }) deviceId: string | null;
   @Column({ type: 'varchar', nullable: true }) dnt: string | null;
   @Column({ type: 'varchar', nullable: true }) origin: string | null;
   @Column({ type: 'varchar', nullable: true }) priority: string | null;
@@ -101,9 +108,7 @@ export class Visit {
   @Column('int', { nullable: true }) xColorDepth: number | null;
   @Column({ type: 'varchar', nullable: true }) xCsrfToken: string | null;
   @Column({ type: 'varchar', nullable: true }) xCustomHeader: string | null;
-  @Column({ type: 'varchar', nullable: true })
-  @Index()
-  xDeviceId: string | null;
+  @Column({ type: 'varchar', nullable: true }) xDeviceId: string | null;
   @Column({ type: 'varchar', nullable: true }) doConnectingIp: string | null;
   @Column({ type: 'varchar', nullable: true }) browser: string | null;
   @Column({ type: 'varchar', nullable: true }) browserVersion: string | null;

@@ -1,6 +1,6 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
-import { DeepPartial, EntityManager } from 'typeorm';
+import { DeepPartial, EntityManager, IsNull } from 'typeorm';
 import { UAParser } from 'ua-parser-js';
 import * as crypto from 'crypto';
 import { Visit } from '../entities/visit.entity';
@@ -9,6 +9,9 @@ import { User } from '../entities/user.entity';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { IncomingHttpHeaders } from 'http';
+import { nanoid } from 'nanoid';
+
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
 
 @Injectable()
 export class VisitorTrackingMiddleware implements NestMiddleware {
@@ -118,6 +121,8 @@ export class VisitorTrackingMiddleware implements NestMiddleware {
     deviceId: string,
   ): Promise<UserDevice | null> {
     try {
+      const ua = new UAParser(headers.userAgent as string);
+
       // First try to find the device for this user
       let device = await this.manager.getRepository(UserDevice).findOne({
         where: {
@@ -147,6 +152,8 @@ export class VisitorTrackingMiddleware implements NestMiddleware {
             xScreenHeight: headers.xScreenHeight,
             xColorDepth: headers.xColorDepth,
             xTimeZone: headers.xTimeZone,
+            browser: ua.getBrowser().name,
+            deviceType: ua.getDevice().type,
           });
         }
 
@@ -182,11 +189,49 @@ export class VisitorTrackingMiddleware implements NestMiddleware {
         throw new Error('User device is required for visit tracking');
       }
 
+      // Check for existing session
+      const lastVisit = await queryRunner.manager.getRepository(Visit).findOne({
+        where: {
+          userDevice: { id: data.userDevice.id },
+          sessionEndTime: IsNull(),
+        },
+        order: { timestamp: 'DESC' },
+      });
+
+      let sessionId: string;
+      let sessionStartTime: Date;
+
+      if (
+        lastVisit &&
+        Date.now() - lastVisit.timestamp.getTime() < SESSION_TIMEOUT
+      ) {
+        // Continue existing session
+        sessionId = lastVisit.sessionId!;
+        sessionStartTime = lastVisit.sessionStartTime!;
+
+        // Update previous visit's session end time
+        lastVisit.sessionEndTime = new Date();
+        lastVisit.sessionDuration = Math.round(
+          (lastVisit.sessionEndTime.getTime() -
+            lastVisit.sessionStartTime!.getTime()) /
+            1000,
+        );
+        await queryRunner.manager.save(lastVisit);
+      } else {
+        // Start new session
+        sessionId = nanoid();
+        sessionStartTime = new Date();
+      }
+
       const visitData: DeepPartial<Visit> = {
         timestamp: new Date(),
         user: data.user,
         userDevice: data.userDevice,
+        sessionId,
+        sessionStartTime,
         ...this.extractVisitData(data),
+        utmSource: data.req.query.utm_source as string,
+        utmCampaign: data.req.query.utm_campaign as string,
       };
 
       const visit = queryRunner.manager.getRepository(Visit).create(visitData);
@@ -260,6 +305,7 @@ export class VisitorTrackingMiddleware implements NestMiddleware {
       headers.xTimeZone,
       headers.acceptLanguage,
       headers.cfConnectingIp,
+      headers.xDeviceId,
     ]
       .filter(Boolean)
       .join('|');

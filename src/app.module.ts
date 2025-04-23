@@ -30,6 +30,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { UserDevice } from './entities/user-device.entity';
 import { VisitorTrackingMiddleware } from './middleware/visitor-tracking.middleware';
 import { UsersModule } from './users/users.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 const redisStoreFactory: any = redisStore;
 
@@ -116,6 +117,7 @@ const redisStoreFactory: any = redisStore;
     VisitorModule,
     DashboardModule,
     UsersModule,
+    AnalyticsModule,
   ],
   controllers: [],
   providers: [VisitorTrackingMiddleware],

@@ -15,6 +15,7 @@ import { RedirectResponse } from './interfaces/redirect.interface';
 import { ClickEvent } from '../entities/click-event.entity';
 import { DynamicLinkClickEvent } from '../entities/dynamic-link-click-event.entity';
 import { UserDevice } from '../entities/user-device.entity';
+import { nanoid } from 'nanoid';
 
 @Injectable()
 export class RedirectService {
@@ -38,16 +39,45 @@ export class RedirectService {
     clickData: Partial<IClickData>,
     req: Request,
   ): Promise<RedirectResponse> {
+    const startTime = Date.now();
     try {
       const link = await this.linkRepository.findOne({
         where: { alias },
-        relations: ['user'],
+        relations: ['user', 'qrCodes'],
       });
 
       if (link) {
-        await this.trackClickEvent(link, req);
-        const enrichedClickData = this.enrichClickData(clickData, req);
-        return this.handleStandardLink(link, enrichedClickData);
+        const clickEvent = await this.trackClickEvent(link, req, startTime);
+        const fullClickData: IClickData = {
+          ipAddress: clickData.ipAddress || req.ip || 'unknown',
+          userAgent:
+            clickData.userAgent || req.headers['user-agent'] || 'unknown',
+          referrer: clickData.referrer || req.headers.referer || 'unknown',
+          country: clickData.country || 'unknown',
+          state: clickData.state || 'unknown',
+          city: clickData.city || 'unknown',
+          latitude: clickData.latitude || 0,
+          longitude: clickData.longitude || 0,
+          sessionId: clickData.sessionId || 'unknown',
+          utmSource: clickData.utmSource || 'unknown',
+          utmMedium: clickData.utmMedium || 'unknown',
+          utmCampaign: clickData.utmCampaign || 'unknown',
+          utmTerm: clickData.utmTerm || 'unknown',
+          utmContent: clickData.utmContent || 'unknown',
+          cfRay: clickData.cfRay || 'unknown',
+          cfVisitor: clickData.cfVisitor || 'unknown',
+          cfDeviceType: clickData.cfDeviceType || 'unknown',
+          cfMetroCode: clickData.cfMetroCode || 'unknown',
+          cfRegion: clickData.cfRegion || 'unknown',
+          cfRegionCode: clickData.cfRegionCode || 'unknown',
+          cfConnectingIp: clickData.cfConnectingIp || 'unknown',
+          cfIpCity: clickData.cfIpCity || 'unknown',
+          cfIpContinent: clickData.cfIpContinent || 'unknown',
+          cfIpLatitude: clickData.cfIpLatitude || '0',
+          cfIpLongitude: clickData.cfIpLongitude || '0',
+          cfIpTimeZone: clickData.cfIpTimeZone || 'unknown',
+        };
+        return this.handleStandardLink(link, fullClickData);
       }
 
       const dynamicLink = await this.dynamicLinkRepository.findOne({
@@ -56,9 +86,41 @@ export class RedirectService {
       });
 
       if (dynamicLink) {
-        await this.trackDynamicClickEvent(dynamicLink, req);
-        const enrichedClickData = this.enrichClickData(clickData, req);
-        return this.handleDynamicLink(dynamicLink, enrichedClickData, req);
+        const clickEvent = await this.trackDynamicClickEvent(
+          dynamicLink,
+          req,
+          startTime,
+        );
+        const fullClickData: IClickData = {
+          ipAddress: clickData.ipAddress || req.ip || 'unknown',
+          userAgent:
+            clickData.userAgent || req.headers['user-agent'] || 'unknown',
+          referrer: clickData.referrer || req.headers.referer || 'unknown',
+          country: clickData.country || 'unknown',
+          state: clickData.state || 'unknown',
+          city: clickData.city || 'unknown',
+          latitude: clickData.latitude || 0,
+          longitude: clickData.longitude || 0,
+          sessionId: clickData.sessionId || 'unknown',
+          utmSource: clickData.utmSource || 'unknown',
+          utmMedium: clickData.utmMedium || 'unknown',
+          utmCampaign: clickData.utmCampaign || 'unknown',
+          utmTerm: clickData.utmTerm || 'unknown',
+          utmContent: clickData.utmContent || 'unknown',
+          cfRay: clickData.cfRay || 'unknown',
+          cfVisitor: clickData.cfVisitor || 'unknown',
+          cfDeviceType: clickData.cfDeviceType || 'unknown',
+          cfMetroCode: clickData.cfMetroCode || 'unknown',
+          cfRegion: clickData.cfRegion || 'unknown',
+          cfRegionCode: clickData.cfRegionCode || 'unknown',
+          cfConnectingIp: clickData.cfConnectingIp || 'unknown',
+          cfIpCity: clickData.cfIpCity || 'unknown',
+          cfIpContinent: clickData.cfIpContinent || 'unknown',
+          cfIpLatitude: clickData.cfIpLatitude || '0',
+          cfIpLongitude: clickData.cfIpLongitude || '0',
+          cfIpTimeZone: clickData.cfIpTimeZone || 'unknown',
+        };
+        return this.handleDynamicLink(dynamicLink, fullClickData, req);
       }
 
       throw new NotFoundException('Link not found');
@@ -70,92 +132,34 @@ export class RedirectService {
     }
   }
 
-  private enrichClickData(
-    clickData: Partial<IClickData>,
+  private async trackClickEvent(
+    link: Link,
     req: Request,
-  ): IClickData {
-    const headers = req.headers;
-    const { geoCountry, geoLatitude, geoLongitude, geoCity } =
-      this.extractGeoData(headers['x-geo-data'] as string);
-
-    return {
-      ipAddress: (headers['cf-connecting-ip'] as string) || 'Unknown',
-      userAgent: (headers['user-agent'] as string) || 'Unknown',
-      referrer: (headers.referer as string) || 'Unknown',
-      country: geoCountry || (headers['cf-ipcountry'] as string) || 'Unknown',
-      state: 'Unknown',
-      city: geoCity || (headers['cf-ipcity'] as string) || 'Unknown',
-      latitude:
-        geoLatitude || parseFloat(headers['cf-iplatitude'] as string) || 0,
-      longitude:
-        geoLongitude || parseFloat(headers['cf-iplongitude'] as string) || 0,
-      sessionId: 'Unknown',
-      utmSource: (req.query.utm_source as string) || 'Unknown',
-      utmMedium: (req.query.utm_medium as string) || 'Unknown',
-      utmCampaign: (req.query.utm_campaign as string) || 'Unknown',
-      utmTerm: (req.query.utm_term as string) || 'Unknown',
-      utmContent: (req.query.utm_content as string) || 'Unknown',
-      cfRay: (headers['cf-ray'] as string) || 'Unknown',
-      cfVisitor: (headers['cf-visitor'] as string) || 'Unknown',
-      cfDeviceType: (headers['cf-device-type'] as string) || 'Unknown',
-      cfMetroCode: (headers['cf-metro-code'] as string) || 'Unknown',
-      cfRegion: (headers['cf-region'] as string) || 'Unknown',
-      cfRegionCode: (headers['cf-region-code'] as string) || 'Unknown',
-      cfConnectingIp: (headers['cf-connecting-ip'] as string) || 'Unknown',
-      cfIpCity: geoCity || (headers['cf-ipcity'] as string) || 'Unknown',
-      cfIpContinent: (headers['cf-ipcontinent'] as string) || 'Unknown',
-      cfIpLatitude:
-        String(geoLatitude) || (headers['cf-iplatitude'] as string) || '0',
-      cfIpLongitude:
-        String(geoLongitude) || (headers['cf-iplongitude'] as string) || '0',
-      cfIpTimeZone: (headers['cf-iptimezone'] as string) || 'Unknown',
-    };
-  }
-
-  private extractGeoData(xGeoDataRaw: string | undefined): {
-    geoCountry: string | null;
-    geoCity: string | null;
-    geoLatitude: number | null;
-    geoLongitude: number | null;
-  } {
-    try {
-      if (!xGeoDataRaw) {
-        return {
-          geoCountry: null,
-          geoCity: null,
-          geoLatitude: null,
-          geoLongitude: null,
-        };
-      }
-
-      const parsed = JSON.parse(xGeoDataRaw);
-      return {
-        geoCountry: parsed?.country || null,
-        geoCity: parsed?.city || null,
-        geoLatitude: parsed?.latitude || null,
-        geoLongitude: parsed?.longitude || null,
-      };
-    } catch {
-      return {
-        geoCountry: null,
-        geoCity: null,
-        geoLatitude: null,
-        geoLongitude: null,
-      };
-    }
-  }
-
-  private async trackClickEvent(link: Link, req: Request): Promise<void> {
+    startTime: number,
+  ): Promise<ClickEvent> {
     try {
       const headers = this.transformHeaders(req.headers);
       const deviceId = await this.getOrCreateUserDevice(headers);
       const ua = new UAParser(headers.userAgent as string);
+      const referrerUrl = new URL(String(headers.referer || 'https://direct'));
+      const sessionId = nanoid();
 
       const clickEvent = this.clickEventRepository.create({
         link,
         userDevice: deviceId,
         timestamp: new Date(),
         ...this.extractClickData(req),
+        sessionId,
+        utmSource: req.query.utm_source as string,
+        utmMedium: req.query.utm_medium as string,
+        utmCampaign: req.query.utm_campaign as string,
+        utmTerm: req.query.utm_term as string,
+        utmContent: req.query.utm_content as string,
+        qrCodeId: link.qrCodes?.[0]?.id,
+        statusCode: 200,
+        responseTime: Date.now() - startTime,
+        bounced: true,
+        referrerDomain: referrerUrl.hostname,
         browser: ua.getBrowser().name || null,
         browserVersion: ua.getBrowser().version || null,
         os: ua.getOS().name || null,
@@ -170,25 +174,41 @@ export class RedirectService {
       // Update link click count
       link.clickCount = (link.clickCount || 0) + 1;
       await this.linkRepository.save(link);
+
+      return clickEvent;
     } catch (error) {
       this.logger.error(`Failed to track click event: ${error.message}`);
+      throw error;
     }
   }
 
   private async trackDynamicClickEvent(
     dynamicLink: DynamicLink,
     req: Request,
-  ): Promise<void> {
+    startTime: number,
+  ): Promise<DynamicLinkClickEvent> {
     try {
       const headers = this.transformHeaders(req.headers);
       const deviceId = await this.getOrCreateUserDevice(headers);
       const ua = new UAParser(headers.userAgent as string);
+      const referrerUrl = new URL(String(headers.referer || 'https://direct'));
+      const sessionId = nanoid();
 
       const clickEvent = this.dynamicClickEventRepository.create({
         dynamicLink,
         userDevice: deviceId,
         timestamp: new Date(),
         ...this.extractClickData(req),
+        sessionId,
+        utmSource: req.query.utm_source as string,
+        utmMedium: req.query.utm_medium as string,
+        utmCampaign: req.query.utm_campaign as string,
+        utmTerm: req.query.utm_term as string,
+        utmContent: req.query.utm_content as string,
+        statusCode: 200,
+        responseTime: Date.now() - startTime,
+        bounced: true,
+        referrerDomain: referrerUrl.hostname,
         browser: ua.getBrowser().name || null,
         browserVersion: ua.getBrowser().version || null,
         os: ua.getOS().name || null,
@@ -199,37 +219,82 @@ export class RedirectService {
       });
 
       await this.dynamicClickEventRepository.save(clickEvent);
+
+      return clickEvent;
     } catch (error) {
       this.logger.error(
         `Failed to track dynamic click event: ${error.message}`,
       );
+      throw error;
     }
   }
 
   private async getOrCreateUserDevice(
     headers: Record<string, any>,
   ): Promise<UserDevice> {
-    const deviceId = this.generateDeviceId(headers);
+    try {
+      const deviceId = this.generateDeviceId(headers);
 
-    let device = await this.userDeviceRepository.findOne({
-      where: { deviceId },
-    });
-
-    if (!device) {
-      device = this.userDeviceRepository.create({
-        deviceId,
-        xDeviceId: headers.xDeviceId || null,
-        xDeviceMemory: headers.xDeviceMemory || null,
-        xPlatform: headers.xPlatform || null,
-        xScreenWidth: headers.xScreenWidth || null,
-        xScreenHeight: headers.xScreenHeight || null,
-        xColorDepth: headers.xColorDepth || null,
-        xTimeZone: headers.xTimeZone || null,
+      let device = await this.userDeviceRepository.findOne({
+        where: { deviceId },
       });
-      await this.userDeviceRepository.save(device);
+
+      if (!device) {
+        device = this.userDeviceRepository.create({
+          deviceId,
+          xDeviceId: headers.xDeviceId,
+          xDeviceMemory: headers.xDeviceMemory,
+          xPlatform: headers.xPlatform,
+          xScreenWidth: headers.xScreenWidth,
+          xScreenHeight: headers.xScreenHeight,
+          xColorDepth: headers.xColorDepth,
+          xTimeZone: headers.xTimeZone,
+        });
+        await this.userDeviceRepository.save(device);
+      }
+
+      return device;
+    } catch (error) {
+      this.logger.error(`Failed to get/create user device: ${error.message}`);
+      throw error;
+    }
+  }
+
+  private transformHeaders(
+    headers: Record<string, string | string[] | undefined>,
+  ): Record<string, string | number | null> {
+    const transformed: Record<string, string | number | null> = {};
+
+    for (const [key, value] of Object.entries(headers)) {
+      const camelKey = key
+        .toLowerCase()
+        .replace(/([-_][a-z])/g, (group) =>
+          group.toUpperCase().replace('-', '').replace('_', ''),
+        );
+
+      let transformedValue: string | number | null = null;
+
+      if (Array.isArray(value)) {
+        transformedValue = value[0] || null;
+      } else if (value !== undefined) {
+        if (
+          [
+            'xDeviceMemory',
+            'xScreenWidth',
+            'xScreenHeight',
+            'xColorDepth',
+          ].includes(camelKey)
+        ) {
+          transformedValue = value ? parseInt(value.toString(), 10) : null;
+        } else {
+          transformedValue = value || null;
+        }
+      }
+
+      transformed[camelKey] = transformedValue;
     }
 
-    return device;
+    return transformed;
   }
 
   private extractClickData(req: Request): Record<string, any> {
@@ -284,62 +349,37 @@ export class RedirectService {
     };
   }
 
-  private generateDeviceId(headers: Record<string, any>): string {
-    const rawFingerprint = [
-      headers.userAgent,
-      headers.xScreenWidth,
-      headers.xScreenHeight,
-      headers.xDeviceMemory,
-      headers.xPlatform,
-      headers.xTimeZone,
-      headers.acceptLanguage,
-      headers.cfConnectingIp,
-      headers.xDeviceId,
-    ]
-      .filter(Boolean)
-      .join('|');
-
-    return require('crypto')
-      .createHash('sha256')
-      .update(rawFingerprint)
-      .digest('hex');
-  }
-
-  private transformHeaders(
-    headers: Record<string, string | string[] | undefined>,
-  ): Record<string, string | number | null> {
-    const transformed: Record<string, string | number | null> = {};
-
-    for (const [key, value] of Object.entries(headers)) {
-      const camelKey = key
-        .toLowerCase()
-        .replace(/([-_][a-z])/g, (group) =>
-          group.toUpperCase().replace('-', '').replace('_', ''),
-        );
-
-      let transformedValue: string | number | null = null;
-
-      if (Array.isArray(value)) {
-        transformedValue = value[0] || null;
-      } else if (value !== undefined) {
-        if (
-          [
-            'xDeviceMemory',
-            'xScreenWidth',
-            'xScreenHeight',
-            'xColorDepth',
-          ].includes(camelKey)
-        ) {
-          transformedValue = value ? parseInt(value.toString(), 10) : null;
-        } else {
-          transformedValue = value || null;
-        }
+  private extractGeoData(xGeoDataRaw: string | undefined): {
+    geoCountry: string | null;
+    geoCity: string | null;
+    geoLatitude: number | null;
+    geoLongitude: number | null;
+  } {
+    try {
+      if (!xGeoDataRaw) {
+        return {
+          geoCountry: null,
+          geoCity: null,
+          geoLatitude: null,
+          geoLongitude: null,
+        };
       }
 
-      transformed[camelKey] = transformedValue;
+      const parsed = JSON.parse(xGeoDataRaw);
+      return {
+        geoCountry: parsed?.country || null,
+        geoCity: parsed?.city || null,
+        geoLatitude: parsed?.latitude || null,
+        geoLongitude: parsed?.longitude || null,
+      };
+    } catch {
+      return {
+        geoCountry: null,
+        geoCity: null,
+        geoLatitude: null,
+        geoLongitude: null,
+      };
     }
-
-    return transformed;
   }
 
   private handleStandardLink(
@@ -425,5 +465,26 @@ export class RedirectService {
       }
     }
     return 0;
+  }
+
+  private generateDeviceId(headers: Record<string, any>): string {
+    const rawFingerprint = [
+      headers.userAgent,
+      headers.xScreenWidth,
+      headers.xScreenHeight,
+      headers.xDeviceMemory,
+      headers.xPlatform,
+      headers.xTimeZone,
+      headers.acceptLanguage,
+      headers.cfConnectingIp,
+      headers.xDeviceId,
+    ]
+      .filter(Boolean)
+      .join('|');
+
+    return require('crypto')
+      .createHash('sha256')
+      .update(rawFingerprint)
+      .digest('hex');
   }
 }

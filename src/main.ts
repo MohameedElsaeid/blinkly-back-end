@@ -5,10 +5,12 @@ import * as cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
 import { NextFunction, Request, Response } from 'express';
+import { TransformInterceptor } from './interceptors/transform.interceptor';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bodyParser: true });
   const isProd = process.env.NODE_ENV === 'production';
+  app.useGlobalInterceptors(new TransformInterceptor());
 
   app.enableCors({
     origin: isProd ? ['https://blinkly.app', 'https://www.blinkly.app'] : true,

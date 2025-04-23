@@ -9,7 +9,7 @@ import { User } from '../entities/user.entity';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { IncomingHttpHeaders } from 'http';
-import { nanoid } from 'nanoid';
+import { v4 as uuidv4 } from 'uuid';
 
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
 
@@ -35,7 +35,12 @@ export class VisitorTrackingMiddleware implements NestMiddleware {
       const { geoCountry, geoLatitude, geoLongitude, geoCity } =
         this.extractGeoData(headers.xGeoData as string);
 
-      const userDevice = await this.upsertUserDevice(user, headers, deviceId);
+      const userDevice = await this.upsertUserDevice(
+        user,
+        headers,
+        deviceId,
+        ua,
+      );
 
       if (userDevice) {
         await this.trackVisit({
@@ -119,52 +124,62 @@ export class VisitorTrackingMiddleware implements NestMiddleware {
     user: User | undefined,
     headers: Record<string, any>,
     deviceId: string,
+    ua: UAParser,
   ): Promise<UserDevice | null> {
-    try {
-      const ua = new UAParser(headers.userAgent as string);
+    const queryRunner = this.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-      // First try to find the device for this user
-      let device = await this.manager.getRepository(UserDevice).findOne({
+    try {
+      // First try to find the device with exact match
+      let device = await queryRunner.manager.getRepository(UserDevice).findOne({
         where: {
           deviceId,
-          userId: user?.id,
+          userId: user?.id || IsNull(),
+          xDeviceId: headers.xDeviceId || IsNull(),
         },
       });
 
       if (!device) {
-        // If no device found for this user, try to find any device with this deviceId
-        device = await this.manager.getRepository(UserDevice).findOne({
-          where: { deviceId },
+        // If not found, create new device
+        device = queryRunner.manager.getRepository(UserDevice).create({
+          id: uuidv4(),
+          userId: user?.id,
+          deviceId,
+          xDeviceId: headers.xDeviceId,
+          xDeviceMemory: headers.xDeviceMemory,
+          xPlatform: headers.xPlatform,
+          xScreenWidth: headers.xScreenWidth,
+          xScreenHeight: headers.xScreenHeight,
+          xColorDepth: headers.xColorDepth,
+          xTimeZone: headers.xTimeZone,
+          browser: ua.getBrowser().name,
+          deviceType: ua.getDevice().type,
+          fingerprintHash: deviceId,
         });
-
-        if (device) {
-          // If device exists but for a different user, update it with the new user
-          device.userId = user?.id;
-        } else {
-          // If no device exists at all, create a new one
-          device = this.manager.getRepository(UserDevice).create({
-            userId: user?.id,
-            deviceId,
-            xDeviceId: headers.xDeviceId,
-            xDeviceMemory: headers.xDeviceMemory,
-            xPlatform: headers.xPlatform,
-            xScreenWidth: headers.xScreenWidth,
-            xScreenHeight: headers.xScreenHeight,
-            xColorDepth: headers.xColorDepth,
-            xTimeZone: headers.xTimeZone,
-            browser: ua.getBrowser().name,
-            deviceType: ua.getDevice().type,
-          });
-        }
-
-        // Save the device
-        device = await this.manager.getRepository(UserDevice).save(device);
+      } else {
+        // Update existing device
+        device.userId = user?.id;
+        device.xDeviceMemory = headers.xDeviceMemory || device.xDeviceMemory;
+        device.xPlatform = headers.xPlatform || device.xPlatform;
+        device.xScreenWidth = headers.xScreenWidth || device.xScreenWidth;
+        device.xScreenHeight = headers.xScreenHeight || device.xScreenHeight;
+        device.xColorDepth = headers.xColorDepth || device.xColorDepth;
+        device.xTimeZone = headers.xTimeZone || device.xTimeZone;
+        device.browser = ua.getBrowser().name || device.browser;
+        device.deviceType = ua.getDevice().type || device.deviceType;
       }
+
+      device = await queryRunner.manager.save(device);
+      await queryRunner.commitTransaction();
 
       return device;
     } catch (error) {
+      await queryRunner.rollbackTransaction();
       this.logger().error('Failed to upsert user device:', error);
       return null;
+    } finally {
+      await queryRunner.release();
     }
   }
 
@@ -198,37 +213,28 @@ export class VisitorTrackingMiddleware implements NestMiddleware {
         order: { timestamp: 'DESC' },
       });
 
-      let sessionId: string;
-      let sessionStartTime: Date;
+      const now = new Date();
+      const sessionId = lastVisit?.sessionId || uuidv4();
 
       if (
         lastVisit &&
-        Date.now() - lastVisit.timestamp.getTime() < SESSION_TIMEOUT
+        now.getTime() - lastVisit.timestamp.getTime() < SESSION_TIMEOUT
       ) {
-        // Continue existing session
-        sessionId = lastVisit.sessionId!;
-        sessionStartTime = lastVisit.sessionStartTime!;
-
         // Update previous visit's session end time
-        lastVisit.sessionEndTime = new Date();
+        lastVisit.sessionEndTime = now;
         lastVisit.sessionDuration = Math.round(
-          (lastVisit.sessionEndTime.getTime() -
-            lastVisit.sessionStartTime!.getTime()) /
-            1000,
+          (now.getTime() - lastVisit.sessionStartTime!.getTime()) / 1000,
         );
         await queryRunner.manager.save(lastVisit);
-      } else {
-        // Start new session
-        sessionId = nanoid();
-        sessionStartTime = new Date();
       }
 
       const visitData: DeepPartial<Visit> = {
-        timestamp: new Date(),
+        id: uuidv4(),
+        timestamp: now,
         user: data.user,
         userDevice: data.userDevice,
         sessionId,
-        sessionStartTime,
+        sessionStartTime: lastVisit ? lastVisit.sessionStartTime : now,
         ...this.extractVisitData(data),
         utmSource: data.req.query.utm_source as string,
         utmCampaign: data.req.query.utm_campaign as string,
@@ -244,55 +250,6 @@ export class VisitorTrackingMiddleware implements NestMiddleware {
     } finally {
       await queryRunner.release();
     }
-  }
-
-  private extractVisitData(data: any): Partial<Visit> {
-    const { req, headers, ua, geoCountry, geoCity, geoLatitude, geoLongitude } =
-      data;
-
-    return {
-      host: headers.host,
-      cfRay: headers.cfRay,
-      requestTime: new Date(),
-      xDeviceMemory: headers.xDeviceMemory,
-      requestId: headers.requestId,
-      acceptEncoding: headers.acceptEncoding,
-      xPlatform: headers.xPlatform,
-      xForwardedProto: headers.xForwardedProto,
-      xLanguage: headers.xLanguage,
-      cfVisitorScheme: this.extractCfScheme(headers.cfVisitor),
-      cfIpCountry: headers.cfIpcountry,
-      geoCountry,
-      geoCity,
-      geoLatitude,
-      geoLongitude,
-      xFbClickId: req.query.fbclid as string,
-      xFbBrowserId: headers.xFbBrowserId,
-      cfConnectingO2O: headers.cfConnectingO2O,
-      xForwardedFor: headers.xForwardedFor,
-      xUserAgent: headers.xUserAgent,
-      xTimeZone: headers.xTimeZone,
-      xScreenWidth: headers.xScreenWidth,
-      xScreenHeight: headers.xScreenHeight,
-      contentType: headers.contentType,
-      acceptLanguage: headers.acceptLanguage,
-      accept: headers.accept,
-      referer: headers.referer,
-      userAgent: headers.userAgent,
-      cfConnectingIp: headers.cfConnectingIp,
-      deviceId: headers.deviceId,
-      origin: headers.origin,
-      secChUa: headers.secChUa,
-      secChUaMobile: headers.secChUaMobile,
-      secChUaPlatform: headers.secChUaPlatform,
-      browser: ua.getBrowser().name,
-      browserVersion: ua.getBrowser().version,
-      os: ua.getOS().name,
-      osVersion: ua.getOS().version,
-      device: ua.getDevice().model,
-      deviceType: ua.getDevice().type,
-      queryParams: this.normalizeQueryParams(req.query),
-    };
   }
 
   private generateDeviceId(headers: Record<string, any>): string {
@@ -346,27 +303,49 @@ export class VisitorTrackingMiddleware implements NestMiddleware {
     }
   }
 
-  private extractCfScheme(cfVisitorRaw: string | null): string | null {
-    if (!cfVisitorRaw) return null;
-    try {
-      const parsed = JSON.parse(cfVisitorRaw);
-      return parsed?.scheme || null;
-    } catch {
-      return null;
-    }
-  }
+  private extractVisitData(data: any): Record<string, any> {
+    const headers = data.headers;
+    const ua = data.ua;
 
-  private normalizeQueryParams(params: any): Record<string, unknown> {
-    if (!params) return {};
-
-    if (typeof params === 'string') {
-      try {
-        return JSON.parse(params);
-      } catch {
-        return {};
-      }
-    }
-
-    return params;
+    return {
+      host: headers.host,
+      cfRay: headers.cfRay,
+      requestTime: new Date(),
+      xDeviceMemory: headers.xDeviceMemory,
+      acceptEncoding: headers.acceptEncoding,
+      xPlatform: headers.xPlatform,
+      xForwardedProto: headers.xForwardedProto,
+      xLanguage: headers.xLanguage,
+      cfVisitorScheme: headers.cfVisitor,
+      cfIpCountry: headers.cfIpcountry,
+      geoCountry: data.geoCountry,
+      geoCity: data.geoCity,
+      geoLatitude: data.geoLatitude,
+      geoLongitude: data.geoLongitude,
+      xFbBrowserId: headers.xFbBrowserId,
+      xForwardedFor: headers.xForwardedFor,
+      xUserAgent: headers.xUserAgent,
+      xTimeZone: headers.xTimeZone,
+      xScreenWidth: headers.xScreenWidth,
+      xScreenHeight: headers.xScreenHeight,
+      contentType: headers.contentType,
+      acceptLanguage: headers.acceptLanguage,
+      accept: headers.accept,
+      referer: headers.referer,
+      userAgent: headers.userAgent,
+      cfConnectingIp: headers.cfConnectingIp,
+      deviceId: headers.deviceId,
+      origin: headers.origin,
+      secChUa: headers.secChUa,
+      secChUaMobile: headers.secChUaMobile,
+      secChUaPlatform: headers.secChUaPlatform,
+      browser: ua.getBrowser().name,
+      browserVersion: ua.getBrowser().version,
+      os: ua.getOS().name,
+      osVersion: ua.getOS().version,
+      device: ua.getDevice().model,
+      deviceType: ua.getDevice().type,
+      queryParams: data.req.query || {},
+    };
   }
 }

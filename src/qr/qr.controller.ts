@@ -21,7 +21,7 @@ import { UserRole } from '../entities/user.entity';
 import { IAuthenticatedRequest } from '../interfaces/request.interface';
 import { QrCode } from '../entities/qr-code.entity';
 
-@Controller('qr')
+@Controller('api/qr')
 @UseGuards(JwtAuthGuard, ThrottlerGuard, RolesGuard)
 export class QrController {
   constructor(private readonly qrCodeService: QrCodeService) {}
@@ -55,13 +55,5 @@ export class QrController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
     await this.qrCodeService.remove(req.user.id, id);
-  }
-
-  @Get('admin/stats')
-  @Roles(UserRole.ADMIN)
-  async getAdminStats(): Promise<{ totalQrCodes: number }> {
-    return {
-      totalQrCodes: 0, // Implement actual stats
-    };
   }
 }

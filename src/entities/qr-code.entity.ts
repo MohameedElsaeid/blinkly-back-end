@@ -39,13 +39,16 @@ export class QrCode {
   @Column({ type: 'varchar', length: 255, nullable: true })
   logoUrl: string | null;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  imageUrl: string | null;
+
   @Column({ type: 'int', default: 0 })
   scanCount: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 
   @DeleteDateColumn({ type: 'timestamptz', nullable: true })

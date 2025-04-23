@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
 import * as QRCode from 'qrcode';
+import * as sharp from 'sharp';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { QrCode } from '../entities/qr-code.entity';
 import { User } from '../entities/user.entity';
 import { Link } from '../entities/link.entity';
@@ -10,6 +12,9 @@ import { CreateQrCodeDto } from './dto/create-qr-code.dto';
 @Injectable()
 export class QrCodeService {
   private readonly logger = new Logger(QrCodeService.name);
+  private readonly s3Client: S3Client;
+  private readonly spacesEndpoint = process.env.DIGITAL_OCAIN_SPACES_URL;
+  private readonly bucketName = 'blinkly';
 
   constructor(
     @InjectRepository(QrCode)
@@ -18,7 +23,16 @@ export class QrCodeService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Link)
     private readonly linkRepository: Repository<Link>,
-  ) {}
+  ) {
+    this.s3Client = new S3Client({
+      endpoint: process.env.DIGITAL_OCAIN_SPACES_URL || '',
+      region: 'fra1',
+      credentials: {
+        accessKeyId: process.env.DIGITAL_OCAIN_SPACES_ACCESS_KEY || '',
+        secretAccessKey: process.env.DIGITAL_OCAIN_SPACES_SECRET_KEY || '',
+      },
+    });
+  }
 
   async createQrCode(
     userId: string,
@@ -64,10 +78,11 @@ export class QrCodeService {
         );
       }
     }
+
     try {
       // Generate QR code
-      const qrCodeOptions = {
-        type: 'svg',
+      const qrBuffer = await QRCode.toBuffer(createQrDto.targetUrl, {
+        type: 'png' as const,
         color: {
           dark: createQrDto.color || '#000000',
           light: createQrDto.backgroundColor || '#FFFFFF',
@@ -75,17 +90,58 @@ export class QrCodeService {
         width: createQrDto.size || 300,
         margin: 1,
         errorCorrectionLevel: 'H',
-      };
+      });
 
-      const qrCodeData = await QRCode.toString(
-        createQrDto.targetUrl,
-        qrCodeOptions,
+      let finalBuffer = qrBuffer;
+
+      // If logo URL is provided, overlay it on the QR code
+      if (createQrDto.logoUrl) {
+        const logoResponse = await fetch(createQrDto.logoUrl);
+        const logoBuffer = Buffer.from(await logoResponse.arrayBuffer());
+
+        // Calculate logo size (25% of QR code size)
+        const logoSize = Math.round((createQrDto.size || 300) * 0.25);
+
+        // Resize and center the logo
+        const resizedLogo = await sharp(logoBuffer)
+          .resize(logoSize, logoSize)
+          .toBuffer();
+
+        // Calculate position to center the logo
+        const position = Math.round(((createQrDto.size || 300) - logoSize) / 2);
+
+        // Composite the logo onto the QR code
+        finalBuffer = await sharp(qrBuffer)
+          .composite([
+            {
+              input: resizedLogo,
+              top: position,
+              left: position,
+            },
+          ])
+          .toBuffer();
+      }
+
+      // Generate unique filename
+      const filename = `qr-codes/${userId}/${Date.now()}.png`;
+
+      // Upload to DigitalOcean Spaces
+      await this.s3Client.send(
+        new PutObjectCommand({
+          Bucket: this.bucketName,
+          Key: filename,
+          Body: finalBuffer,
+          ContentType: 'image/png',
+          ACL: 'public-read',
+        }),
       );
 
+      // Create QR code record
       const qrCode = this.qrCodeRepository.create({
         ...createQrDto,
         user,
-        ...(link ? { link } : {}), // Only include the link if it exists
+        ...(link ? { link } : {}),
+        imageUrl: `${this.spacesEndpoint}/${filename}`,
       });
 
       return await this.qrCodeRepository.save(qrCode);

@@ -13,7 +13,7 @@ import { CreateQrCodeDto } from './dto/create-qr-code.dto';
 export class QrCodeService {
   private readonly logger = new Logger(QrCodeService.name);
   private readonly s3Client: S3Client;
-  private readonly spacesEndpoint = process.env.DIGITAL_OCAIN_SPACES_URL;
+  private readonly spacesEndpoint = 'https://fra1.digitaloceanspaces.com';
   private readonly bucketName = 'blinkly';
 
   constructor(
@@ -25,7 +25,7 @@ export class QrCodeService {
     private readonly linkRepository: Repository<Link>,
   ) {
     this.s3Client = new S3Client({
-      endpoint: process.env.DIGITAL_OCAIN_SPACES_URL || '',
+      endpoint: this.spacesEndpoint,
       region: 'fra1',
       credentials: {
         accessKeyId: process.env.DIGITAL_OCAIN_SPACES_ACCESS_KEY || '',
@@ -141,7 +141,7 @@ export class QrCodeService {
         ...createQrDto,
         user,
         ...(link ? { link } : {}),
-        imageUrl: `${this.spacesEndpoint}/${filename}`,
+        imageUrl: `${process.env.DIGITAL_OCAIN_SPACES_URL}/${filename}`,
       });
 
       return await this.qrCodeRepository.save(qrCode);
